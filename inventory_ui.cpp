@@ -109,8 +109,10 @@ char game::inv(std::string title)
  u.inv.restack(&u);
  std::vector<char> null_vector;
  print_inv_statics(this, w_inv, title, null_vector);
-// Gun, ammo, weapon, armor, food, tool, book, other
+ // Gun, ammo, weapon, armor, food, tool, book, other
  std::vector<int> firsts = find_firsts(u.inv);
+
+ mvwprintw(w_inv, maxitems + 2, 0, "Press = to change item letter." );
 
  do {
   if (ch == '<' && start > 0) { // Clear lines and shift
@@ -127,11 +129,38 @@ char game::inv(std::string title)
    for (int i = 1; i < 25; i++)
     mvwprintz(w_inv, i, 0, c_black, "                                        ");
   }
+  if (ch == '=' ) {
+   mvwprintw(w_inv, maxitems + 2, 0, "Pick a letter.                         ");
+   wrefresh(w_inv);
+   ch = getch();
+   item & it = u.i_at(ch);
+   if( ! it.is_null() ) {
+    char orig = ch;
+    mvwprintw(w_inv, maxitems + 2, 0, "Picked %c: %s                         ", ch, it.tname().c_str() );
+    mvwprintw(w_inv, maxitems + 3, 0, "Pick replacement letter." );
+    wrefresh(w_inv);
+    ch = getch();
+    item it_new  = u.i_at(ch);
+    if( ! it_new.is_null() ) {
+     mvwprintw(w_inv, maxitems + 2, 0, "Already taken!           " );
+    }
+    else {
+     it.invlet = ch;
+     return inv(title);
+    }
+    mvwprintw(w_inv, maxitems + 3, 0, "                         " );
+
+   }
+   else
+   {
+    mvwprintw(w_inv, maxitems + 2, 0, "Invalid letter!                       ");
+   }
+  }
   int cur_line = 2;
   for (cur_it = start; cur_it < start + maxitems && cur_line < 23; cur_it++) {
-// Clear the current line;
+   // Clear the current line;
    mvwprintw(w_inv, cur_line, 0, "                                    ");
-// Print category header
+   // Print category header
    for (int i = 0; i < 8; i++) {
     if (cur_it == firsts[i]) {
      mvwprintz(w_inv, cur_line, 0, c_magenta, CATEGORIES[i].c_str());
@@ -141,13 +170,13 @@ char game::inv(std::string title)
    if (cur_it < u.inv.size()) {
     mvwputch (w_inv, cur_line, 0, c_white, u.inv[cur_it].invlet);
     mvwprintz(w_inv, cur_line, 1, u.inv[cur_it].color_in_inventory(&u), " %s",
-              u.inv[cur_it].tname(this).c_str());
+      u.inv[cur_it].tname(this).c_str());
     if (u.inv.stack_at(cur_it).size() > 1)
      wprintw(w_inv, " [%d]", u.inv.stack_at(cur_it).size());
     if (u.inv[cur_it].charges > 0)
      wprintw(w_inv, " (%d)", u.inv[cur_it].charges);
     else if (u.inv[cur_it].contents.size() == 1 &&
-             u.inv[cur_it].contents[0].charges > 0)
+      u.inv[cur_it].contents[0].charges > 0)
      wprintw(w_inv, " (%d)", u.inv[cur_it].contents[0].charges);
    }
    cur_line++;
@@ -158,7 +187,7 @@ char game::inv(std::string title)
    mvwprintw(w_inv, maxitems + 4, 12, "> More items");
   wrefresh(w_inv);
   ch = getch();
- } while (ch == '<' || ch == '>');
+ } while (ch == '<' || ch == '>' || ch == '=');
  werase(w_inv);
  delwin(w_inv);
  erase();

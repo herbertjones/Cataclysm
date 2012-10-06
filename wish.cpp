@@ -153,9 +153,8 @@ void game::wish()
  } while (ch != '\n');
  clear();
  mvprintw(0, 0, "\nWish granted - %d (%d).", tmp.type->id, itm_antibiotics);
- tmp.invlet = nextinv;
+ tmp.invlet = next_inv_ch(tmp.tname());
  u.i_add(tmp);
- advance_nextinv();
  getch();
  delwin(w_info);
  delwin(w_list);

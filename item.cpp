@@ -138,7 +138,7 @@ void item::make(itype* it)
  contents.clear();
 }
 
-bool item::is_null()
+bool item::is_null() const
 {
  return (type == NULL || type->id == 0);
 }
@@ -504,7 +504,7 @@ nc_color item::color_in_inventory(player *u)
  return ret;
 }
 
-std::string item::tname(game *g)
+std::string item::tname(game *g) const
 {
  std::stringstream ret;
 
@@ -661,7 +661,7 @@ int item::weight()
  return ret;
 }
 
-int item::volume()
+int item::volume() const
 {
  if (typeId() == itm_corpse) {
   switch (corpse->size) {
@@ -718,7 +718,7 @@ int item::damage_cut()
  return type->melee_cut;
 }
 
-bool item::has_flag(item_flag f)
+bool item::has_flag(item_flag f) const
 {
  if (is_gun()) {
   for (int i = 0; i < contents.size(); i++) {
@@ -903,7 +903,7 @@ bool item::destroyed_at_zero_charges()
  return (is_ammo() || is_food());
 }
 
-bool item::is_gun()
+bool item::is_gun() const
 {
  if( is_null() )
   return false;
@@ -911,7 +911,7 @@ bool item::is_gun()
  return type->is_gun();
 }
 
-bool item::is_gunmod()
+bool item::is_gunmod() const
 {
  if( is_null() )
   return false;
@@ -919,7 +919,7 @@ bool item::is_gunmod()
  return type->is_gunmod();
 }
 
-bool item::is_bionic()
+bool item::is_bionic() const
 {
  if( is_null() )
   return false;
@@ -927,7 +927,7 @@ bool item::is_bionic()
  return type->is_bionic();
 }
 
-bool item::is_ammo()
+bool item::is_ammo() const
 {
  if( is_null() )
   return false;
@@ -935,7 +935,7 @@ bool item::is_ammo()
  return type->is_ammo();
 }
 
-bool item::is_food(player *u)
+bool item::is_food(player *u) const
 {
  if (u == NULL)
   return is_food();
@@ -955,12 +955,12 @@ bool item::is_food(player *u)
  return false;
 }
 
-bool item::is_food_container(player *u)
+bool item::is_food_container(player *u) const
 {
  return (contents.size() >= 1 && contents[0].is_food(u));
 }
 
-bool item::is_food()
+bool item::is_food() const
 {
  if( is_null() )
   return false;
@@ -970,12 +970,12 @@ bool item::is_food()
  return false;
 }
 
-bool item::is_food_container()
+bool item::is_food_container() const
 {
  return (contents.size() >= 1 && contents[0].is_food());
 }
 
-bool item::is_drink()
+bool item::is_drink() const
 {
  if( is_null() )
   return false;
@@ -983,7 +983,7 @@ bool item::is_drink()
  return type->is_food() && type->m1 == LIQUID;
 }
 
-bool item::is_weap()
+bool item::is_weap() const
 {
  if( is_null() )
   return false;
@@ -994,7 +994,7 @@ bool item::is_weap()
  return (type->melee_dam > 7 || type->melee_cut > 5);
 }
 
-bool item::is_bashing_weapon()
+bool item::is_bashing_weapon() const
 {
  if( is_null() )
   return false;
@@ -1002,7 +1002,7 @@ bool item::is_bashing_weapon()
  return (type->melee_dam >= 8);
 }
 
-bool item::is_cutting_weapon()
+bool item::is_cutting_weapon() const
 {
  if( is_null() )
   return false;
@@ -1010,7 +1010,7 @@ bool item::is_cutting_weapon()
  return (type->melee_cut >= 8 && !has_flag(IF_SPEAR));
 }
 
-bool item::is_armor()
+bool item::is_armor() const
 {
  if( is_null() )
   return false;
@@ -1018,7 +1018,7 @@ bool item::is_armor()
  return type->is_armor();
 }
 
-bool item::is_book()
+bool item::is_book() const
 {
  if( is_null() )
   return false;
@@ -1032,7 +1032,7 @@ bool item::is_book()
  return type->is_book();
 }
 
-bool item::is_container()
+bool item::is_container() const
 {
  if( is_null() )
   return false;
@@ -1040,7 +1040,7 @@ bool item::is_container()
  return type->is_container();
 }
 
-bool item::is_tool()
+bool item::is_tool() const
 {
  if( is_null() )
   return false;
@@ -1048,7 +1048,7 @@ bool item::is_tool()
  return type->is_tool();
 }
 
-bool item::is_software()
+bool item::is_software() const
 {
  if( is_null() )
   return false;
@@ -1056,7 +1056,7 @@ bool item::is_software()
  return type->is_software();
 }
 
-bool item::is_macguffin()
+bool item::is_macguffin() const
 {
  if( is_null() )
   return false;
@@ -1064,7 +1064,7 @@ bool item::is_macguffin()
  return type->is_macguffin();
 }
 
-bool item::is_style()
+bool item::is_style() const
 {
  if( is_null() )
   return false;
@@ -1072,7 +1072,7 @@ bool item::is_style()
  return type->is_style();
 }
 
-bool item::is_other()
+bool item::is_other() const
 {
  if( is_null() )
   return false;
@@ -1082,7 +1082,7 @@ bool item::is_other()
          !is_book() && !is_weap());
 }
 
-bool item::is_artifact()
+bool item::is_artifact() const
 {
  if( is_null() )
   return false;
@@ -1435,7 +1435,15 @@ std::ostream & operator<<(std::ostream & out, const item * it)
   out << "NULL)";
   return out;
  }
- out << it->name << ")";
+ out << " name:" << it->name;
+ out << ", tname:" << it->tname();
+ out << ", invlet:" << it->invlet;
+ out << ", type:" << it->type;
+ out << ", damage:" << it->damage;
+ out << ", active:" << it->active;
+ out << ", charges:" << it->charges;
+ out << ", contents:" << it->contents.size();
+ out << " )";
  return out;
 }
 
@@ -1445,10 +1453,17 @@ std::ostream & operator<<(std::ostream & out, const item & it)
  return out;
 }
 
-int item::typeId()
+int item::typeId() const
 {
-    if ( type == NULL )
-        return itm_null;
-    return type->id;
+ if ( type == NULL )
+  return itm_null;
+ return type->id;
 }
 
+bool is_valid_item_letter(char ch)
+{
+ if( (ch >= 'a' && ch <= 'z') ||
+   (ch >= 'A' && ch <= 'Z') )
+  return true;
+ return false;
+}

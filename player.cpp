@@ -11,12 +11,16 @@
 #include "options.h"
 #include <sstream>
 #include <stdlib.h>
+#include <cctype>
+#include "debug.h"
 
 #if (defined _WIN32 || defined WINDOWS)
 	#include "catacurse.h"
 #else
 	#include <curses.h>
 #endif
+
+#define invdbg(x) dout((DebugLevel)(x),D_INV) << __FILE__ << ":" << __LINE__ << ": "
 
 nc_color encumb_color(int level);
 bool activity_is_suspendable(activity_type type);
@@ -3049,6 +3053,9 @@ void player::sort_inv()
 
 void player::i_add(item it, game *g)
 {
+ char invlet = it.invlet;
+ if( ! ( invlet >= 'a' && invlet <= 'z' || invlet >= 'A' && invlet <= 'Z' ) )
+  invlet = new_inv_letter(it);
  last_item = itype_id(it.type->id);
  if (it.is_food() || it.is_ammo() || it.is_gun()  || it.is_armor() || 
      it.is_book() || it.is_tool() || it.is_weap() || it.is_food_container())
@@ -4133,7 +4140,7 @@ void player::use(game *g, char let)
   if (tool->use == &iuse::dogfood) replace_item = false;
 
   if (replace_item && used->invlet != 0)
-   inv.add_item_keep_invlet(copy);
+   inv.add_item(copy);
   else if (used->invlet == 0 && used == &weapon)
    remove_weapon();
   return;
@@ -4914,5 +4921,98 @@ std::string random_last_name()
  lastname = buff;
  fin.close();
  return lastname;
+}
+
+char player::new_inv_letter(const item & it)
+{
+ std::string name = it.tname();
+ char ch = (name.size() > 0?name[0]:0);
+ return new_inv_letter(ch);
+}
+
+char player::new_inv_letter(char ch)
+{
+ std::set<char> taken_letters;
+
+ invdbg(D_INFO) << "player::new_inv_letter: Recommended letter: " << ch;
+
+ sort_inv();
+ inv.restack();
+
+ // Add our inventory to any pased in letters.
+ //std::vector<item> items(inv.as_vector());
+ for(int i=0,end=inv.size(); i < end; ++ i)
+  taken_letters.insert( inv[i].invlet );
+
+ for(int i=0,end=worn.size(); i < end; ++ i)
+  taken_letters.insert( worn[i].invlet );
+
+ if (!weapon.is_null())
+  taken_letters.insert( weapon.invlet );
+
+ // ch should be lowercase letter.
+ if( ch >= 'A' && ch <= 'Z')
+  ch = std::tolower( ch );
+
+ if( ! (ch >= 'a' && ch <= 'z') )
+  ch = 'a';
+ else
+ {
+  // Try current lowercase
+  if( taken_letters.find( ch ) == taken_letters.end() )
+  {
+   invdbg(D_INFO) << "player::new_inv_letter: Recommended letter lowercase is good.";
+   return ch; // No match, can use.
+  }
+
+  // Try uppercase
+  char up = std::toupper(ch);
+  if( taken_letters.find( up ) == taken_letters.end() )
+  {
+   invdbg(D_INFO) << "player::new_inv_letter: Recommended letter uppercase is good.";
+   return up; // No match, can use.
+  }
+
+  // else walk through lowers then uppers
+ }
+
+ char orig_lower_ch = ch;
+ char orig_upper_ch = std::toupper(ch);
+
+ for (int i = 0; i<52;++i)
+ {
+  // Go to next letter
+  if (ch=='z')
+   ch = 'a';
+  else if (ch=='Z')
+   ch = 'A';
+  else
+   ++ch;
+
+  // If made our way all the way around, switch case
+  if( ch == orig_upper_ch )
+   ch = orig_lower_ch;
+  else if( ch == orig_lower_ch )
+   ch = orig_upper_ch;
+
+  if( taken_letters.find( ch ) == taken_letters.end() )
+  {
+   invdbg(D_INFO) << "player::new_inv_letter: Found acceptable letter: " << ch;
+   return ch; // No match, can use.
+  }
+
+  invdbg(D_INFO) << "player::new_inv_letter: Skipping letter: " << ch;
+ }
+
+ invdbg(D_INFO) << "player::new_inv_letter: Unable to find any letter.";
+ return 0;
+}
+
+char player::can_stack_with(const item & it)
+{
+ for(int i=0,end=inv.size(); i < end; ++i)
+  if( inv[i].stacks_with(it) )
+   return inv[i].invlet;
+ return 0;
 }
 

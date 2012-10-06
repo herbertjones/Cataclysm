@@ -129,7 +129,7 @@ void inventory::clear()
 void inventory::add_stack(const std::vector<item> newits)
 {
  for (int i = 0; i < newits.size(); i++)
-  add_item(newits[i], true);
+  add_item(newits[i] /*, true */);
 }
 
 void inventory::push_back(std::vector<item> newits)
@@ -137,10 +137,10 @@ void inventory::push_back(std::vector<item> newits)
  add_stack(newits);
 }
  
-void inventory::add_item(item newit, bool keep_invlet)
+void inventory::add_item(item newit /*, bool keep_invlet */)
 {
- if (keep_invlet && !newit.invlet_is_okay())
-  assign_empty_invlet(newit); // Keep invlet is true, but invlet is invalid!
+ // if (keep_invlet && !newit.invlet_is_okay())
+ //  assign_empty_invlet(newit); // Keep invlet is true, but invlet is invalid!
 
  if (newit.is_style())
   return; // Styles never belong in our inventory.
@@ -151,24 +151,24 @@ void inventory::add_item(item newit, bool keep_invlet)
     items[i][0].invlet = newit.invlet;
    else
 */
-    newit.invlet = items[i][0].invlet;
+   //newit.invlet = items[i][0].invlet;
    items[i].push_back(newit);
    return;
-  } else if (keep_invlet && items[i][0].invlet == newit.invlet)
-   assign_empty_invlet(items[i][0]);
+  }//  else if (keep_invlet && items[i][0].invlet == newit.invlet)
+   // assign_empty_invlet(items[i][0]);
  }
- if (!newit.invlet_is_okay() || index_by_letter(newit.invlet) != -1) 
-  assign_empty_invlet(newit);
+ // if (!newit.invlet_is_okay() || index_by_letter(newit.invlet) != -1) 
+ //  assign_empty_invlet(newit);
 
  std::vector<item> newstack;
  newstack.push_back(newit);
  items.push_back(newstack);
 }
 
-void inventory::add_item_keep_invlet(item newit)
-{
- add_item(newit, true);
-}
+// void inventory::add_item_keep_invlet(item newit)
+// {
+//  add_item(newit, true);
+// }
 
 void inventory::push_back(item newit)
 {
@@ -194,7 +194,7 @@ void inventory::restack(player *p)
   for (int i = 0; i < tmp.size(); i++) {
    if (!tmp[i].invlet_is_okay() || p->has_weapon_or_armor(tmp[i].invlet)) {
     //debugmsg("Restacking item %d (invlet %c)", i, tmp[i].invlet);
-    tmp.assign_empty_invlet(tmp[i], p);
+    //tmp.assign_empty_invlet(tmp[i], p);
     for (int j = 1; j < tmp.stack_at(i).size(); j++)
      tmp.stack_at(i)[j].invlet = tmp[i].invlet;
    }
@@ -449,24 +449,27 @@ bool inventory::has_item(item *it)
  return false;
 }
 
-void inventory::assign_empty_invlet(item &it, player *p)
-{
- for (int ch = 'a'; ch <= 'z'; ch++) {
-  //debugmsg("Trying %c", ch);
-  if (index_by_letter(ch) == -1 && (!p || !p->has_weapon_or_armor(ch))) {
-   it.invlet = ch;
-   //debugmsg("Using %c", ch);
-   return;
-  }
- }
- for (int ch = 'A'; ch <= 'Z'; ch++) {
-  //debugmsg("Trying %c", ch);
-  if (index_by_letter(ch) == -1 && (!p || !p->has_weapon_or_armor(ch))) {
-   //debugmsg("Using %c", ch);
-   it.invlet = ch;
-   return;
-  }
- }
- it.invlet = '`';
- //debugmsg("Couldn't find empty invlet");
-}
+// Only the player knows for certain all the items he is wearing and
+// wielding.
+// void inventory::assign_empty_invlet(item &it, player *p)
+// {
+//  char newchar = new_inv_letter
+//  for (int ch = 'a'; ch <= 'z'; ch++) {
+//   //debugmsg("Trying %c", ch);
+//   if (index_by_letter(ch) == -1 && (!p || !p->has_weapon_or_armor(ch))) {
+//    it.invlet = ch;
+//    //debugmsg("Using %c", ch);
+//    return;
+//   }
+//  }
+//  for (int ch = 'A'; ch <= 'Z'; ch++) {
+//   //debugmsg("Trying %c", ch);
+//   if (index_by_letter(ch) == -1 && (!p || !p->has_weapon_or_armor(ch))) {
+//    //debugmsg("Using %c", ch);
+//    it.invlet = ch;
+//    return;
+//   }
+//  }
+//  it.invlet = '`';
+//  //debugmsg("Couldn't find empty invlet");
+// }

@@ -19,6 +19,7 @@
 
 #define MAX_MONSTERS_MOVING 40 // Efficiency!
 #define dbg(x) dout((DebugLevel)(x),D_GAME) << __FILE__ << ":" << __LINE__ << ": "
+#define invdbg(x) dout((DebugLevel)(x),D_INV) << __FILE__ << ":" << __LINE__ << ": "
 
 void intro();
 nc_color sev(int a);	// Right now, ONLY used for scent debugging....
@@ -83,8 +84,6 @@ void game::setup()
  m = map(&itypes, &mapitems, &traps); // Init the root map with our vectors
  z.reserve(1000); // Reserve some space
 
-// Even though we may already have 'd', nextinv will be incremented as needed
- nextinv = 'd';
  next_npc_id = 1;
  next_faction_id = 1;
  next_mission_id = 1;
@@ -1727,7 +1726,7 @@ void game::load(std::string name)
  u.weapon = item(itypes[0], 0);
  int tmpturn, tmpspawn, tmpnextweather, tmprun, tmptar, tmpweather, tmptemp,
      comx, comy;
- fin >> tmpturn >> tmptar >> tmprun >> mostseen >> nextinv >> next_npc_id >>
+ fin >> tmpturn >> tmptar >> tmprun >> mostseen >> next_npc_id >>
         next_faction_id >> next_mission_id >> tmpspawn >> tmpnextweather >>
         tmpweather >> tmptemp >> levx >> levy >> levz >> comx >> comy;
  turn = tmpturn;
@@ -1815,7 +1814,7 @@ void game::save()
  fout.open(playerfile.str().c_str());
 // First, write out basic game state information.
  fout << int(turn) << " " << int(last_target) << " " << int(run_mode) << " " <<
-         mostseen << " " << nextinv << " " << next_npc_id << " " <<
+         mostseen << " " << next_npc_id << " " <<
          next_faction_id << " " << next_mission_id << " " << int(nextspawn) <<
          " " << int(nextweather) << " " << weather << " " << int(temperature) <<
          " " << levx << " " << levy << " " << levz << " " << cur_om.posx <<
@@ -1868,26 +1867,6 @@ void game::save()
  cur_om.save(u.name);
  //m.save(&cur_om, turn, levx, levy);
  //MAPBUFFER.save();
-}
-
-void game::advance_nextinv()
-{
- if (nextinv == 'z')
-  nextinv = 'A';
- else if (nextinv == 'Z')
-  nextinv = 'a';
- else
-  nextinv++;
-}
-
-void game::decrease_nextinv()
-{
- if (nextinv == 'a')
-  nextinv = 'Z';
- else if (nextinv == 'A')
-  nextinv = 'z';
- else
-  nextinv--;
 }
 
 void game::vadd_msg(const char* msg, va_list ap)
@@ -4761,22 +4740,23 @@ void game::pickup(int posx, int posy, int min)
    add_msg("You can't pick up a liquid!");
    return;
   }
+
+  invdbg(D_INFO) << "game::pickup: Getting item: " << newit;
+
+  // Stack else, use existing, else pick wisely
+  char stackable_ch = u.can_stack_with(newit);
+  if( stackable_ch )
+   newit.invlet = stackable_ch;
+  else if ( !is_valid_item_letter(newit.invlet) || u.has_item(newit.invlet))
+   newit.invlet = next_inv_ch(newit.tname());
+
+  invdbg(D_INFO) << "game::pickup: Chose letter: " << newit.invlet;
+
   if (newit.invlet == 0) {
-   newit.invlet = nextinv;
-   advance_nextinv();
-  }
-  while (iter < 52 && u.has_item(newit.invlet) &&
-         !u.i_at(newit.invlet).stacks_with(newit)) {
-   newit.invlet = nextinv;
-   iter++;
-   advance_nextinv();
-  }
-  if (iter == 52) {
    add_msg("You're carrying too many items!");
    return;
   } else if (u.weight_carried() + newit.weight() > u.weight_capacity()) {
    add_msg("The %s is too heavy!", newit.tname(this).c_str());
-   decrease_nextinv();
   } else if (u.volume_carried() + newit.volume() > u.volume_capacity()) {
    if (u.is_armed()) {
     if (!u.weapon.has_flag(IF_NO_UNWIELD)) {
@@ -4799,12 +4779,10 @@ void game::pickup(int posx, int posy, int min)
       u.wield(this, u.inv.size() - 1);
       u.moves -= 100;
       add_msg("Wielding %c - %s", newit.invlet, newit.tname(this).c_str());
-     } else
-      decrease_nextinv();
+     }
     } else {
      add_msg("There's no room in your inventory for the %s, and you can't\
  unwield your %s.", newit.tname(this).c_str(), u.weapon.tname(this).c_str());
-     decrease_nextinv();
     }
    } else {
     u.i_add(newit, this);
@@ -4963,14 +4941,19 @@ void game::pickup(int posx, int posy, int min)
    got_water = true;
   else if (getitem[i]) {
    iter = 0;
-   while (iter < 52 && (here[i].invlet == 0 ||
-                        (u.has_item(here[i].invlet) &&
-                         !u.i_at(here[i].invlet).stacks_with(here[i]))) ) {
-    here[i].invlet = nextinv;
-    iter++;
-    advance_nextinv();
-   }
-   if (iter == 52) {
+
+   invdbg(D_INFO) << "game::pickup: Getting item(2): " << here[i];
+
+   // Stack else, use existing, else pick wisely
+   char stackable_ch = u.can_stack_with(here[i]);
+   if( stackable_ch )
+    here[i].invlet = stackable_ch;
+   else if ( !is_valid_item_letter(here[i].invlet) || u.has_item(here[i].invlet))
+    here[i].invlet = next_inv_ch(here[i].tname());
+
+   invdbg(D_INFO) << "game::pickup: Chose letter(2): " << here[i].invlet;
+
+   if (here[i].invlet == 0) {
     add_msg("You're carrying too many items!");
     werase(w_pickup);
     wrefresh(w_pickup);
@@ -4978,7 +4961,6 @@ void game::pickup(int posx, int posy, int min)
     return;
    } else if (u.weight_carried() + here[i].weight() > u.weight_capacity()) {
     add_msg("The %s is too heavy!", here[i].tname(this).c_str());
-    decrease_nextinv();
    } else if (u.volume_carried() + here[i].volume() > u.volume_capacity()) {
     if (u.is_armed()) {
      if (!u.weapon.has_flag(IF_NO_UNWIELD)) {
@@ -5004,12 +4986,10 @@ void game::pickup(int posx, int posy, int min)
        curmit--;
        u.moves -= 100;
        add_msg("Wielding %c - %s", u.weapon.invlet, u.weapon.tname(this).c_str());
-      } else
-       decrease_nextinv();
+      }
      } else {
       add_msg("There's no room in your inventory for the %s, and you can't\
   unwield your %s.", here[i].tname(this).c_str(), u.weapon.tname(this).c_str());
-      decrease_nextinv();
      }
     } else {
      u.i_add(here[i], this);
@@ -5783,8 +5763,7 @@ void game::unload()
    int iter = 0;
 // Pick an inventory item for the contents
    while ((content.invlet == 0 || u.has_item(content.invlet)) && iter < 52) {
-    content.invlet = nextinv;
-    advance_nextinv();
+    content.invlet = u.new_inv_letter(content);
     iter++;
    }
    if (content.made_of(LIQUID)) {
@@ -5833,8 +5812,7 @@ void game::unload()
  while (u.weapon.charges > 0) {
   int iter = 0;
   while ((newam.invlet == 0 || u.has_item(newam.invlet)) && iter < 52) {
-   newam.invlet = nextinv;
-   advance_nextinv();
+   newam.invlet = u.new_inv_letter(newam);
    iter++;
   }
   if (newam.made_of(LIQUID))
@@ -7409,6 +7387,22 @@ void game::autosave()
  MAPBUFFER.save();
  moves_since_last_save = 0;
  item_exchanges_since_save = 0;
+}
+
+char game::next_inv_ch()
+{
+    return u.new_inv_letter(0);
+}
+
+char game::next_inv_ch(std::string name)
+{
+ invdbg(D_INFO) << "game::next_inv_ch: Going to get char for: " << name;
+
+ char ch(name.empty()?'a':name[0]);
+
+ invdbg(D_INFO) << "game::next_inv_ch: Chose char: " << name;
+
+ return u.new_inv_letter(ch);
 }
 
 void intro()

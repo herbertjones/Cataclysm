@@ -13,6 +13,7 @@
 #include "mutation.h"
 #include <vector>
 #include <string>
+#include <set>
 
 class monster;
 class game;
@@ -217,6 +218,9 @@ public:
                  itype* item_type = NULL);
 
  void sort_inv();	// Sort inventory by type
+ char new_inv_letter(const item & it);
+ char new_inv_letter(char ch);
+ char can_stack_with(const item & it);
  std::string weapname(bool charges = true);
 
  void i_add(item it, game *g = NULL);

@@ -26,7 +26,7 @@ public:
 
  nc_color color(player *u);
  nc_color color_in_inventory(player *u);
- std::string tname(game *g = NULL); // g needed for rotten-test
+ std::string tname(game *g = NULL) const; // g needed for rotten-test
  void use(player &u);
  bool burn(int amount = 1); // Returns true if destroyed
 
@@ -55,12 +55,12 @@ public:
  void put_in(item payload);
 
  int weight();
- int volume();
+ int volume() const;
  int volume_contained();
  int attack_time();
  int damage_bash();
  int damage_cut();
- bool has_flag(item_flag f);
+ bool has_flag(item_flag f) const;
  bool has_technique(technique_id t, player *p = NULL);
  std::vector<technique_id> techniques();
  bool goes_bad();
@@ -79,30 +79,30 @@ public:
  bool conductive(); // Electricity
  bool destroyed_at_zero_charges();
 // Most of the is_whatever() functions call the same function in our itype
- bool is_null(); // True if type is NULL, or points to the null item (id == 0)
- bool is_food(player *u);// Some non-food items are food to certain players
- bool is_food_container(player *u);  // Ditto
- bool is_food();                // Ignoring the ability to eat batteries, etc.
- bool is_food_container();      // Ignoring the ability to eat batteries, etc.
- bool is_drink();
- bool is_weap();
- bool is_bashing_weapon();
- bool is_cutting_weapon();
- bool is_gun();
- bool is_gunmod();
- bool is_bionic();
- bool is_ammo();
- bool is_armor();
- bool is_book();
- bool is_container();
- bool is_tool();
- bool is_software();
- bool is_macguffin();
- bool is_style();
- bool is_other(); // Doesn't belong in other categories
- bool is_artifact();
+ bool is_null() const; // True if type is NULL, or points to the null item (id == 0)
+ bool is_food(player *u) const;// Some non-food items are food to certain players
+ bool is_food_container(player *u) const;  // Ditto
+ bool is_food() const;                // Ignoring the ability to eat batteries, etc.
+ bool is_food_container() const;      // Ignoring the ability to eat batteries, etc.
+ bool is_drink() const;
+ bool is_weap() const;
+ bool is_bashing_weapon() const;
+ bool is_cutting_weapon() const;
+ bool is_gun() const;
+ bool is_gunmod() const;
+ bool is_bionic() const;
+ bool is_ammo() const;
+ bool is_armor() const;
+ bool is_book() const;
+ bool is_container() const;
+ bool is_tool() const;
+ bool is_software() const;
+ bool is_macguffin() const;
+ bool is_style() const;
+ bool is_other() const; // Doesn't belong in other categories
+ bool is_artifact() const;
 
- int typeId();
+ int typeId() const;
 
  itype*   type;
  mtype*   corpse;
@@ -124,6 +124,8 @@ public:
  int player_id;	// Only give a mission to the right player!
 
 };
+
+bool is_valid_item_letter(char ch);
 
 std::ostream & operator<<(std::ostream &, const item &);
 std::ostream & operator<<(std::ostream &, const item *);

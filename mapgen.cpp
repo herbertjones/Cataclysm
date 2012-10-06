@@ -194,12 +194,12 @@ void map::generate(game *g, overmap *om, int x, int y, int turn)
  // And finally save used submaps and delete the rest.
  for (int i = 0; i < my_MAPSIZE; i++) {
   for (int j = 0; j < my_MAPSIZE; j++) {
-
-   dbg(D_INFO) << "map::generate: submap ("<<i<<","<<j<<")";
-   dbg(D_INFO) << grid[i+j];
-
    if (i <= 1 && j <= 1)
+   {
+    dbg(D_INFO) << "map::generate: submap ("<<i<<","<<j<<")";
+    dbg(D_INFO) << grid[i+j];
     saven(om, turn, x, y, i, j);
+   }
    else
     delete grid[i + j * my_MAPSIZE];
   }

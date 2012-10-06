@@ -57,6 +57,10 @@ void setupDebug()
  cl |= D_GAME;
 #endif
 
+#ifdef DEBUG_ENABLE_INVENTORY
+ cl |= D_INV;
+#endif
+
  if( cl != 0 )
   limitDebugClass(cl);
 }

@@ -32,8 +32,7 @@ class inventory
   void clear();
   void add_stack(std::vector<item> newits);
   void push_back(std::vector<item> newits);
-  void add_item (item newit, bool keep_invlet = false);
-  void add_item_keep_invlet(item newit);
+  void add_item (item newit);
   void push_back(item newit);
 
 /* Check all items for proper stacking, rearranging as needed
@@ -71,7 +70,6 @@ class inventory
   item nullitem;
   std::vector<item> nullstack;
  private:
-  void assign_empty_invlet(item &it, player *p = NULL);
   std::vector< std::vector<item> > items;
 };
 

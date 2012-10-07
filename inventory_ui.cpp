@@ -129,33 +129,6 @@ char game::inv(std::string title)
    for (int i = 1; i < 25; i++)
     mvwprintz(w_inv, i, 0, c_black, "                                        ");
   }
-  if (ch == '=' ) {
-   mvwprintw(w_inv, maxitems + 2, 0, "Pick a letter.                         ");
-   wrefresh(w_inv);
-   ch = getch();
-   item & it = u.i_at(ch);
-   if( ! it.is_null() ) {
-    char orig = ch;
-    mvwprintw(w_inv, maxitems + 2, 0, "Picked %c: %s                         ", ch, it.tname().c_str() );
-    mvwprintw(w_inv, maxitems + 3, 0, "Pick replacement letter." );
-    wrefresh(w_inv);
-    ch = getch();
-    item it_new  = u.i_at(ch);
-    if( ! it_new.is_null() ) {
-     mvwprintw(w_inv, maxitems + 2, 0, "Already taken!           " );
-    }
-    else {
-     it.invlet = ch;
-     return inv(title);
-    }
-    mvwprintw(w_inv, maxitems + 3, 0, "                         " );
-
-   }
-   else
-   {
-    mvwprintw(w_inv, maxitems + 2, 0, "Invalid letter!                       ");
-   }
-  }
   int cur_line = 2;
   for (cur_it = start; cur_it < start + maxitems && cur_line < 23; cur_it++) {
    // Clear the current line;
@@ -187,7 +160,7 @@ char game::inv(std::string title)
    mvwprintw(w_inv, maxitems + 4, 12, "> More items");
   wrefresh(w_inv);
   ch = getch();
- } while (ch == '<' || ch == '>' || ch == '=');
+ } while (ch == '<' || ch == '>');
  werase(w_inv);
  delwin(w_inv);
  erase();

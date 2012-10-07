@@ -1724,9 +1724,10 @@ void game::load(std::string name)
  u.name = name;
  u.ret_null = item(itypes[0], 0);
  u.weapon = item(itypes[0], 0);
+ char nextinv = 0; // For existing savegame compatibility
  int tmpturn, tmpspawn, tmpnextweather, tmprun, tmptar, tmpweather, tmptemp,
      comx, comy;
- fin >> tmpturn >> tmptar >> tmprun >> mostseen >> next_npc_id >>
+ fin >> tmpturn >> tmptar >> tmprun >> mostseen >> nextinv >> next_npc_id >>
         next_faction_id >> next_mission_id >> tmpspawn >> tmpnextweather >>
         tmpweather >> tmptemp >> levx >> levy >> levz >> comx >> comy;
  turn = tmpturn;
@@ -1812,9 +1813,10 @@ void game::save()
  playerfile << "save/" << u.name << ".sav";
  masterfile << "save/master.gsav";
  fout.open(playerfile.str().c_str());
+ char nextinv = 0; // For existing savegame compatibility
 // First, write out basic game state information.
  fout << int(turn) << " " << int(last_target) << " " << int(run_mode) << " " <<
-         mostseen << " " << next_npc_id << " " <<
+         mostseen << " " << nextinv << " " << next_npc_id << " " <<
          next_faction_id << " " << next_mission_id << " " << int(nextspawn) <<
          " " << int(nextweather) << " " << weather << " " << int(temperature) <<
          " " << levx << " " << levy << " " << levz << " " << cur_om.posx <<

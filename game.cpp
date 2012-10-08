@@ -1690,7 +1690,7 @@ bool game::load_master()
      tmpinv[tmpinv.size() - 1].contents.push_back(item(itemdata, this));
      j--;
     } else if (item_place == 'W')
-     tmp.worn_items().push_back(item(itemdata, this));
+     tmp.add_worn_item(item(itemdata, this));
     else if (item_place == 'w')
      tmp.set_weapon( item(itemdata, this) );
     else if (item_place == 'c') {
@@ -1790,7 +1790,7 @@ void game::load(std::string name)
    else if (item_place == 'C')
     tmpinv[tmpinv.size() - 1].contents.push_back(item(itemdata, this));
    else if (item_place == 'W')
-    u.worn_items().push_back(item(itemdata, this));
+    u.add_worn_item(item(itemdata, this));
    else if (item_place == 'w')
     u.set_weapon( item(itemdata, this) );
    else if (item_place == 'c')
@@ -2914,7 +2914,7 @@ void game::remove_item(item *it)
  }
  for (int i = 0; i < u.worn_items().size(); i++) {
   if (it == &u.worn_items()[i]) {
-   u.worn_items().erase(u.worn_items().begin() + i);
+   u.remove_worn_item(i);
    return;
   }
  }
@@ -2940,7 +2940,7 @@ void game::remove_item(item *it)
   }
   for (int j = 0; j < active_npc[i].worn_items().size(); j++) {
    if (it == &active_npc[i].worn_items()[j]) {
-    active_npc[i].worn_items().erase(active_npc[i].worn_items().begin() + j);
+    active_npc[i].remove_worn_item(j);
     return;
    }
   }

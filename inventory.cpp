@@ -2,6 +2,7 @@
 #include "inventory.h"
 #include "game.h"
 #include "keypress.h"
+#include <algorithm>
 
 item& inventory::operator[] (int i)
 {
@@ -442,27 +443,64 @@ bool inventory::has_item(item *it)
 
 item& inventory::weapon()
 {
-    return weapon_;
+ return weapon_;
 }
 
 const item& inventory::weapon() const
 {
-    return weapon_;
+ return weapon_;
 }
 
 void inventory::set_weapon(const item & w)
 {
-    weapon_ = w;
+ weapon_ = w;
 }
 
 const std::vector<item>& inventory::worn_items() const
 {
-    return worn_;
+ return worn_;
 }
 
-std::vector<item>& inventory::worn_items()
+item& inventory::worn_item_at(int i)
 {
-    return worn_;
+ return worn_[i];
+}
+
+void inventory::remove_worn_item(int i)
+{
+ worn_.erase(worn_.begin() + i);
+}
+
+void inventory::remove_worn_items(std::vector<int> item_ids)
+{
+ if(item_ids.empty()) return;
+
+ // Numbers most likely to be sorted in order already, but just in case:
+ std::sort(item_ids.begin(), item_ids.end());
+ std::vector<int>::iterator nums = item_ids.begin(),
+  nums_end = item_ids.end();
+
+ int current_place = 0;
+ for(std::vector<item>::iterator it = worn_.begin();
+      it != worn_.end() && nums != nums_end; ++current_place ) {
+  if( current_place == *nums ) {
+   ++nums; // Fount this one.
+   it = worn_.erase(it);
+  }
+  else
+   ++it;
+ }
+}
+
+void inventory::add_worn_item(const item & it)
+{
+ // TODO: Fix inv id
+ worn_.push_back(it);
+}
+
+void inventory::clear_worn_items()
+{
+ worn_.clear();
 }
 
 void inventory::assign_empty_invlet(item &it, player *p)

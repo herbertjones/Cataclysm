@@ -112,9 +112,6 @@ npc& npc::operator= (const npc & rhs)
 
  ret_null = rhs.ret_null;
  inv = rhs.inv;
- worn_items().clear();
- for (int i = 0; i < rhs.worn_items().size(); i++)
-  worn_items().push_back(rhs.worn_items()[i]);
 
  needs.clear();
  for (int i = 0; i < rhs.needs.size(); i++)
@@ -467,7 +464,14 @@ void npc::randomize(game *g, npc_class type)
   hp_cur[i] = hp_max[i];
  }
  starting_weapon(g);
- worn_items() = starting_clothes(type, male, g);
+
+ std::vector<item> sc(starting_clothes(type, male, g));
+ inv.clear_worn_items();
+ for( std::vector<item>::iterator it = sc.begin(), it_end = sc.end();
+   it != it_end; ++it ) {
+  add_worn_item(*it);
+ }
+
  inv.clear();
  inv.add_stack(starting_inv(this, type, g));
  update_worst_item_value();
@@ -1143,7 +1147,7 @@ bool npc::wear_if_wanted(item it)
    encumb_ok = false;
  }
  if (encumb_ok) {
-  worn_items().push_back(it);
+  add_worn_item(it);
   return true;
  }
 // Otherwise, maybe we should take off one or more items and replace them
@@ -1161,7 +1165,7 @@ bool npc::wear_if_wanted(item it)
   if (true) {
 //  if (worn_items()[removal[i]].value_to(this) < it.value_to(this)) {
    inv.push_back(worn_items()[removal[i]]);
-   worn_items().push_back(it);
+   add_worn_item(it);
    return true;
   }
  }

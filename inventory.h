@@ -73,8 +73,12 @@ class inventory
 
   item nullitem;
   std::vector<item> nullstack;
-  std::vector<item> & worn_items();
   const std::vector<item> & worn_items() const;
+  void remove_worn_item(int i);
+  void remove_worn_items(std::vector<int>);
+  item& worn_item_at(int);
+  void add_worn_item(const item &);
+  void clear_worn_items();
 
  private:
   void assign_empty_invlet(item &it, player *p = NULL);

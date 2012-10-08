@@ -242,20 +242,23 @@ void dis_effect(game *g, player &p, disease &dis)
   break;
 
  case DI_ONFIRE:
-  p.hurtall(3);
-  for (int i = 0; i < p.worn_items().size(); i++) {
-   if (p.worn_items()[i].made_of(VEGGY) || p.worn_items()[i].made_of(PAPER) ||
-       p.worn_items()[i].made_of(PAPER)) {
-    p.worn_items().erase(p.worn_items().begin() + i);
-    i--;
-   } else if ((p.worn_items()[i].made_of(COTTON) || p.worn_items()[i].made_of(WOOL)) &&
-              one_in(10)) {
-    p.worn_items().erase(p.worn_items().begin() + i);
-    i--;
-   } else if (p.worn_items()[i].made_of(PLASTIC) && one_in(50)) {
-    p.worn_items().erase(p.worn_items().begin() + i);
-    i--;
+  {
+   p.hurtall(3);
+   const std::vector<item> & worn = p.worn_items();
+   std::vector<int> item_ids;
+   int i = 0;
+   for( std::vector<item>::const_iterator it = worn.begin(),
+     end = worn.end(); it != end; ++it, ++i ) {
+    if (it->made_of(VEGGY) || it->made_of(PAPER) || it->made_of(PAPER)) {
+     item_ids.push_back(i);
+    } else if ((it->made_of(COTTON) || it->made_of(WOOL)) && one_in(10)) {
+     item_ids.push_back(i);
+    } else if (it->made_of(PLASTIC) && one_in(50)) {
+     item_ids.push_back(i);
+    }
    }
+   if( ! item_ids.empty() )
+    p.remove_worn_items( item_ids );
   }
   break;
 

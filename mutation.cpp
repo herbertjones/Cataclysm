@@ -330,7 +330,7 @@ void mutation_effect(game *g, player &p, pl_flag mut)
       g->add_msg("Your %s is pushed off.", p.worn_items()[i].tname().c_str());
      g->m.add_item(p.posx, p.posy, p.worn_items()[i]);
     }
-    p.worn_items().erase(p.worn_items().begin() + i);
+    p.remove_worn_item(i);
     i--;
    }
   }

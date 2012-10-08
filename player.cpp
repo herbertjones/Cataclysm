@@ -3220,7 +3220,7 @@ void player::process_active_items(game *g)
  }
  for (int i = 0; i < worn_items().size(); i++) {
   if (worn_items()[i].is_artifact())
-   g->process_artifact(&(worn_items()[i]), this);
+   g->process_artifact(&(worn_item_at(i)), this);
  }
 }
 
@@ -3291,10 +3291,10 @@ item player::i_rem(char let)
   inv.set_weapon( ret_null );
   return tmp;
  }
- for (int i = 0; i < worn_items().size(); i++) {
-  if (worn_items()[i].invlet == let) {
-   tmp = worn_items()[i];
-   worn_items().erase(worn_items().begin() + i);
+ for (int i = 0, end = worn_items().size(); i < end; i++) {
+  if (worn_item_at(i).invlet == let) {
+   tmp = worn_item_at(i);
+   remove_worn_item(i);
    return tmp;
   }
  }
@@ -3322,8 +3322,8 @@ item& player::i_at(char let)
  if (weapon().invlet == let)
   return weapon();
  for (int i = 0; i < worn_items().size(); i++) {
-  if (worn_items()[i].invlet == let)
-   return worn_items()[i];
+  if (worn_item_at(i).invlet == let)
+   return worn_item_at(i);
  }
  int index = inv.index_by_letter(let);
  if (index == -1)
@@ -3336,8 +3336,8 @@ item& player::i_of_type(itype_id type)
  if (weapon().type->id == type)
   return weapon();
  for (int i = 0; i < worn_items().size(); i++) {
-  if (worn_items()[i].type->id == type)
-   return worn_items()[i];
+  if (worn_item_at(i).type->id == type)
+   return worn_item_at(i);
  }
  for (int i = 0; i < inv.size(); i++) {
   if (inv[i].type->id == type)
@@ -4085,7 +4085,7 @@ bool player::wear_item(game *g, item *to_wear)
  }
  moves -= 350; // TODO: Make this variable?
  last_item = itype_id(to_wear->type->id);
- worn_items().push_back(*to_wear);
+ add_worn_item(*to_wear);
  for (body_part i = bp_head; i < num_bp; i = body_part(i + 1)) {
   if (armor->covers & mfb(i) && encumb(i) >= 4)
    g->add_msg("Your %s %s very encumbered! %s",
@@ -4102,14 +4102,14 @@ bool player::takeoff(game *g, char let)
   if (worn_items()[i].invlet == let) {
    if (volume_capacity() - (dynamic_cast<it_armor*>(worn_items()[i].type))->storage >
        volume_carried() + worn_items()[i].type->volume) {
-    inv.push_back(worn_items()[i]);
-    worn_items().erase(worn_items().begin() + i);
+    inv.push_back(worn_item_at(i));
+    remove_worn_item(i);
     inv_sorted = false;
     return true;
    } else if (query_yn("No room in inventory for your %s.  Drop it?",
-                       worn_items()[i].tname(g).c_str())) {
-    g->m.add_item(posx, posy, worn_items()[i]);
-    worn_items().erase(worn_items().begin() + i);
+                       worn_item_at(i).tname(g).c_str())) {
+    g->m.add_item(posx, posy, worn_item_at(i));
+    remove_worn_item(i);
     return true;
    } else
     return false;
@@ -4596,13 +4596,13 @@ void player::absorb(game *g, body_part bp, int &dam, int &cut)
         worn_items()[i].made_of(COTTON) || worn_items()[i].made_of(GLASS)   ||
         worn_items()[i].made_of(WOOD)   || worn_items()[i].made_of(KEVLAR)) &&
        rng(0, tmp->cut_resist * 2) < cut && !one_in(cut))
-    worn_items()[i].damage++;
+    worn_item_at(i).damage++;
 // Kevlar, plastic, iron, steel, and silver may be damaged by BASHING damage
    if ((worn_items()[i].made_of(PLASTIC) || worn_items()[i].made_of(IRON)   ||
         worn_items()[i].made_of(STEEL)   || worn_items()[i].made_of(SILVER) ||
         worn_items()[i].made_of(STONE))  &&
        rng(0, tmp->dmg_resist * 2) < dam && !one_in(dam))
-    worn_items()[i].damage++;
+    worn_item_at(i).damage++;
    if (worn_items()[i].damage >= 5) {
     int linet;
     if (!is_npc())
@@ -4610,7 +4610,7 @@ void player::absorb(game *g, body_part bp, int &dam, int &cut)
     else if (g->u_see(posx, posy, linet))
      g->add_msg("%s's %s is destroyed!", name.c_str(),
                 worn_items()[i].tname(g).c_str());
-    worn_items().erase(worn_items().begin() + i);
+    remove_worn_item(i);
    }
   }
   dam -= arm_bash;
@@ -4770,27 +4770,42 @@ std::vector<int> player::has_ammo(ammotype at)
 
 const item & player::weapon() const
 {
-    return inv.weapon();
+ return inv.weapon();
 }
 
 item & player::weapon()
 {
-    return inv.weapon();
+ return inv.weapon();
 }
 
 void player::set_weapon(const item & it)
 {
-    inv.set_weapon(it);
+ inv.set_weapon(it);
 }
 
 const std::vector<item>& player::worn_items() const
 {
-    return inv.worn_items();
+ return inv.worn_items();
 }
 
-std::vector<item>& player::worn_items()
+void player::remove_worn_items(const std::vector<int>&item_ids)
 {
-    return inv.worn_items();
+ inv.remove_worn_items(item_ids);
+}
+
+void player::remove_worn_item(int i)
+{
+ inv.remove_worn_item(i);
+}
+
+item& player::worn_item_at(int i)
+{
+ inv.worn_item_at(i);
+}
+
+void player::add_worn_item(const item & it)
+{
+ inv.add_worn_item(it);
 }
 
 std::string player::weapname(bool charges)

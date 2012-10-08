@@ -52,7 +52,7 @@ void print_inv_statics(game *g, WINDOW* w_inv, std::string title,
   mvwprintz(w_inv, 3, 42, c_ltgray, g->u.weapname().c_str());
 // Print worn_items() items
  if (g->u.worn_items().size() > 0)
-  mvwprintz(w_inv, 5, 40, c_magenta, "ITEMS worn_items():");
+  mvwprintz(w_inv, 5, 40, c_magenta, "ITEMS WORN:");
  for (int i = 0; i < g->u.worn_items().size(); i++) {
   bool dropping_armor = false;
   for (int j = 0; j < dropped_items.size() && !dropping_armor; j++) {

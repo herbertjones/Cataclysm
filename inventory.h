@@ -20,7 +20,6 @@ class inventory
   int size() const;
   int num_items() const;
 
-  inventory& operator=  (inventory &rhs);
   inventory& operator=  (const inventory &rhs);
   inventory& operator+= (const inventory &rhs);
   inventory& operator+= (const item &rhs);
@@ -63,6 +62,10 @@ class inventory
   bool has_charges(itype_id it, int quantity);
   bool has_item(item *it); // Looks for a specific item
 
+  const item& weapon() const;
+  item& weapon();
+  void set_weapon(const item &);
+
 /* TODO: This stuff, I guess?
   std::string save();
   void load(std::string data);
@@ -73,6 +76,7 @@ class inventory
  private:
   void assign_empty_invlet(item &it, player *p = NULL);
   std::vector< std::vector<item> > items;
+  item weapon_;
 };
 
 #endif

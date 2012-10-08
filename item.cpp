@@ -17,42 +17,18 @@ std::string default_technique_name(technique_id tech);
 
 item::item()
 {
- name = "";
- charges = -1;
- bday = 0;
- invlet = 0;
- damage = 0;
- burnt = 0;
- poison = 0;
- type = nullitem();
- curammo = NULL;
- corpse = NULL;
- active = false;
- owned = -1;
- mission_id = -1;
- player_id = -1;
+ reset();
 }
 
 item::item(itype* it, unsigned int turn)
 {
- if(!it)
-  type = nullitem();
- else
-  type = it;
+ reset();
  bday = turn;
- name = "";
- invlet = 0;
- damage = 0;
- burnt = 0;
- poison = 0;
- active = false;
- curammo = NULL;
- corpse = NULL;
- owned = -1;
- mission_id = -1;
- player_id = -1;
+
  if (it == NULL)
   return;
+
+ type = it;
  if (it->is_gun())
   charges = 0;
  else if (it->is_ammo()) {
@@ -60,32 +36,25 @@ item::item(itype* it, unsigned int turn)
   charges = ammo->count;
  } else if (it->is_food()) {
   it_comest* comest = dynamic_cast<it_comest*>(it);
-  if (comest->charges == 1)
-   charges = -1;
-  else
+  if (comest->charges != 1)
    charges = comest->charges;
  } else if (it->is_tool()) {
   it_tool* tool = dynamic_cast<it_tool*>(it);
-  if (tool->max_charges == 0)
-   charges = -1;
-  else
+  if (tool->max_charges != 0)
    charges = tool->def_charges;
- } else
-  charges = -1;
+ }
 }
 
 item::item(itype *it, unsigned int turn, char let)
 {
+ reset();
+
+ invlet = let;
+
  if(!it)
-  type = nullitem();
- else
-  type = it;
- bday = turn;
- name = "";
- damage = 0;
- burnt = 0;
- poison = 0;
- active = false;
+  return;
+
+ type = it;
  if (it->is_gun()) {
   charges = 0;
  } else if (it->is_ammo()) {
@@ -93,23 +62,34 @@ item::item(itype *it, unsigned int turn, char let)
   charges = ammo->count;
  } else if (it->is_food()) {
   it_comest* comest = dynamic_cast<it_comest*>(it);
-  if (comest->charges == 1)
-   charges = -1;
-  else
+  if (comest->charges != 1)
    charges = comest->charges;
  } else if (it->is_tool()) {
   it_tool* tool = dynamic_cast<it_tool*>(it);
-  if (tool->max_charges == 0)
-   charges = -1;
-  else
+  if (tool->max_charges != 0)
    charges = tool->def_charges;
- } else {
-  charges = -1;
  }
+}
+
+void item::reset()
+{
+ // Aligned with order in header
+ type = nullitem();
+ corpse  = NULL;
  curammo = NULL;
- corpse = NULL;
+
+ contents.clear();
+
+ name.clear();
+ invlet = 0;
+ charges = -1;
+ active = false;
+ damage = 0;
+ burnt = 0;
+ bday = 0;
  owned = -1;
- invlet = let;
+ poison = 0;
+
  mission_id = -1;
  player_id = -1;
 }
@@ -156,7 +136,7 @@ void item::make(itype* it)
  contents.clear();
 }
 
-bool item::is_null()
+bool item::is_null() const
 {
  return (type == NULL || type->id == 0);
 }
@@ -178,7 +158,7 @@ item item::in_its_container(std::vector<itype*> *itypes)
  return ret;
 }
 
-bool item::invlet_is_okay()
+bool item::invlet_is_okay() const
 {
  return ((invlet >= 'a' && invlet <= 'z') || (invlet >= 'A' && invlet <= 'Z'));
 }
@@ -212,7 +192,7 @@ void item::put_in(item payload)
  contents.push_back(payload);
 }
 
-std::string item::save_info()
+std::string item::save_info() const
 {
  if (type == NULL)
   debugmsg("Tried to save an item with NULL type!");
@@ -238,12 +218,13 @@ std::string item::save_info()
  else
   dump << " -1";
  dump << " " << mission_id << " " << player_id;
- size_t pos = name.find_first_of("\n");
+ std::string name_tmp;
+ size_t pos = name_tmp.find_first_of("\n");
  while (pos != std::string::npos)  {
-  name.replace(pos, 1, "@@");
-  pos = name.find_first_of("\n");
+  name_tmp.replace(pos, 1, "@@");
+  pos = name_tmp.find_first_of("\n");
  }
- dump << " '" << name << "'";
+ dump << " '" << name_tmp << "'";
  return dump.str();
 }
 
@@ -492,7 +473,7 @@ nc_color item::color(player *u)
    ret = c_green;
  } else if (is_ammo()) { // Likewise, ammo is green if you have guns that use it
   ammotype amtype = ammo_type();
-  if (u->weapon.is_gun() && u->weapon.ammo_type() == amtype)
+  if (u->weapon().is_gun() && u->weapon().ammo_type() == amtype)
    ret = c_green;
   else {
    for (int i = 0; i < u->inv.size(); i++) {
@@ -522,7 +503,7 @@ nc_color item::color_in_inventory(player *u)
  return ret;
 }
 
-std::string item::tname(game *g)
+std::string item::tname(game *g) const
 {
  std::stringstream ret;
 
@@ -648,7 +629,7 @@ int item::price()
  return ret;
 }
 
-int item::weight()
+int item::weight() const
 {
  if (typeId() == itm_corpse) {
   int ret;
@@ -679,7 +660,7 @@ int item::weight()
  return ret;
 }
 
-int item::volume()
+int item::volume() const
 {
  if (typeId() == itm_corpse) {
   switch (corpse->size) {
@@ -702,7 +683,7 @@ int item::volume()
  return type->volume;
 }
 
-int item::volume_contained()
+int item::volume_contained() const
 {
  int ret = 0;
  for (int i = 0; i < contents.size(); i++)
@@ -710,20 +691,20 @@ int item::volume_contained()
  return ret;
 }
 
-int item::attack_time()
+int item::attack_time() const
 {
  int ret = 65 + 4 * volume() + 2 * weight();
  return ret;
 }
 
-int item::damage_bash()
+int item::damage_bash() const
 {
  if( is_null() )
   return 0;
  return type->melee_dam;
 }
 
-int item::damage_cut()
+int item::damage_cut() const
 {
  if (is_gun()) {
   for (int i = 0; i < contents.size(); i++) {
@@ -736,7 +717,7 @@ int item::damage_cut()
  return type->melee_cut;
 }
 
-bool item::has_flag(item_flag f)
+bool item::has_flag(item_flag f) const
 {
  if (is_gun()) {
   for (int i = 0; i < contents.size(); i++) {
@@ -749,7 +730,7 @@ bool item::has_flag(item_flag f)
  return (type->item_flags & mfb(f));
 }
 
-bool item::has_technique(technique_id tech, player *p)
+bool item::has_technique(technique_id tech, player *p) const
 {
  if (is_style()) {
   it_style *style = dynamic_cast<it_style*>(type);
@@ -764,7 +745,7 @@ bool item::has_technique(technique_id tech, player *p)
  return (type->techniques & mfb(tech));
 }
 
-std::vector<technique_id> item::techniques()
+std::vector<technique_id> item::techniques() const
 {
  std::vector<technique_id> ret;
  for (int i = 0; i < NUM_TECHNIQUES; i++) {
@@ -774,7 +755,7 @@ std::vector<technique_id> item::techniques()
  return ret;
 }
 
-bool item::rotten(game *g)
+bool item::rotten(game *g) const
 {
  if (!is_food() || g == NULL)
   return false;
@@ -782,7 +763,7 @@ bool item::rotten(game *g)
  return (food->spoils != 0 && int(g->turn) - bday > food->spoils * 600);
 }
 
-bool item::goes_bad()
+bool item::goes_bad() const
 {
  if (!is_food())
   return false;
@@ -790,7 +771,7 @@ bool item::goes_bad()
  return (food->spoils != 0);
 }
 
-bool item::count_by_charges()
+bool item::count_by_charges() const
 {
  if (is_ammo())
   return true;
@@ -801,7 +782,7 @@ bool item::count_by_charges()
  return false;
 }
 
-bool item::craft_has_charges()
+bool item::craft_has_charges() const
 {
  if (count_by_charges())
   return true;
@@ -883,14 +864,14 @@ style_move item::style_data(technique_id tech)
  return ret;
 }
  
-bool item::is_two_handed(player *u)
+bool item::is_two_handed(player *u) const
 {
  if (is_gun() && (dynamic_cast<it_gun*>(type))->skill_used != sk_pistol)
   return true;
  return (weight() > u->str_cur * 4);
 }
 
-bool item::made_of(material mat)
+bool item::made_of(material mat) const
 {
  if( is_null() )
   return false;
@@ -901,7 +882,7 @@ bool item::made_of(material mat)
  return (type->m1 == mat || type->m2 == mat);
 }
 
-bool item::conductive()
+bool item::conductive() const
 {
  if( is_null() )
   return false;
@@ -916,12 +897,12 @@ bool item::conductive()
  return false;
 }
 
-bool item::destroyed_at_zero_charges()
+bool item::destroyed_at_zero_charges() const
 {
  return (is_ammo() || is_food());
 }
 
-bool item::is_gun()
+bool item::is_gun() const
 {
  if( is_null() )
   return false;
@@ -929,7 +910,7 @@ bool item::is_gun()
  return type->is_gun();
 }
 
-bool item::is_gunmod()
+bool item::is_gunmod() const
 {
  if( is_null() )
   return false;
@@ -937,7 +918,7 @@ bool item::is_gunmod()
  return type->is_gunmod();
 }
 
-bool item::is_bionic()
+bool item::is_bionic() const
 {
  if( is_null() )
   return false;
@@ -945,7 +926,7 @@ bool item::is_bionic()
  return type->is_bionic();
 }
 
-bool item::is_ammo()
+bool item::is_ammo() const
 {
  if( is_null() )
   return false;
@@ -953,7 +934,7 @@ bool item::is_ammo()
  return type->is_ammo();
 }
 
-bool item::is_food(player *u)
+bool item::is_food(player *u) const
 {
  if (u == NULL)
   return is_food();
@@ -973,12 +954,12 @@ bool item::is_food(player *u)
  return false;
 }
 
-bool item::is_food_container(player *u)
+bool item::is_food_container(player *u) const
 {
  return (contents.size() >= 1 && contents[0].is_food(u));
 }
 
-bool item::is_food()
+bool item::is_food() const
 {
  if( is_null() )
   return false;
@@ -988,12 +969,12 @@ bool item::is_food()
  return false;
 }
 
-bool item::is_food_container()
+bool item::is_food_container() const
 {
  return (contents.size() >= 1 && contents[0].is_food());
 }
 
-bool item::is_drink()
+bool item::is_drink() const
 {
  if( is_null() )
   return false;
@@ -1001,7 +982,7 @@ bool item::is_drink()
  return type->is_food() && type->m1 == LIQUID;
 }
 
-bool item::is_weap()
+bool item::is_weap() const
 {
  if( is_null() )
   return false;
@@ -1012,7 +993,7 @@ bool item::is_weap()
  return (type->melee_dam > 7 || type->melee_cut > 5);
 }
 
-bool item::is_bashing_weapon()
+bool item::is_bashing_weapon() const
 {
  if( is_null() )
   return false;
@@ -1020,7 +1001,7 @@ bool item::is_bashing_weapon()
  return (type->melee_dam >= 8);
 }
 
-bool item::is_cutting_weapon()
+bool item::is_cutting_weapon() const
 {
  if( is_null() )
   return false;
@@ -1028,7 +1009,7 @@ bool item::is_cutting_weapon()
  return (type->melee_cut >= 8 && !has_flag(IF_SPEAR));
 }
 
-bool item::is_armor()
+bool item::is_armor() const
 {
  if( is_null() )
   return false;
@@ -1036,7 +1017,7 @@ bool item::is_armor()
  return type->is_armor();
 }
 
-bool item::is_book()
+bool item::is_book() const
 {
  if( is_null() )
   return false;
@@ -1050,7 +1031,7 @@ bool item::is_book()
  return type->is_book();
 }
 
-bool item::is_container()
+bool item::is_container() const
 {
  if( is_null() )
   return false;
@@ -1058,7 +1039,7 @@ bool item::is_container()
  return type->is_container();
 }
 
-bool item::is_tool()
+bool item::is_tool() const
 {
  if( is_null() )
   return false;
@@ -1066,7 +1047,7 @@ bool item::is_tool()
  return type->is_tool();
 }
 
-bool item::is_software()
+bool item::is_software() const
 {
  if( is_null() )
   return false;
@@ -1074,7 +1055,7 @@ bool item::is_software()
  return type->is_software();
 }
 
-bool item::is_macguffin()
+bool item::is_macguffin() const
 {
  if( is_null() )
   return false;
@@ -1082,7 +1063,7 @@ bool item::is_macguffin()
  return type->is_macguffin();
 }
 
-bool item::is_style()
+bool item::is_style() const
 {
  if( is_null() )
   return false;
@@ -1090,7 +1071,7 @@ bool item::is_style()
  return type->is_style();
 }
 
-bool item::is_other()
+bool item::is_other() const
 {
  if( is_null() )
   return false;
@@ -1100,7 +1081,7 @@ bool item::is_other()
          !is_book() && !is_weap());
 }
 
-bool item::is_artifact()
+bool item::is_artifact() const
 {
  if( is_null() )
   return false;
@@ -1248,7 +1229,7 @@ int item::range(player *p)
 }
  
 
-ammotype item::ammo_type()
+ammotype item::ammo_type() const
 {
  if (is_gun()) {
   it_gun* gun = dynamic_cast<it_gun*>(type);
@@ -1463,7 +1444,7 @@ std::ostream & operator<<(std::ostream & out, const item & it)
  return out;
 }
 
-int item::typeId()
+int item::typeId() const
 {
     if ( type == NULL )
         return itm_null;

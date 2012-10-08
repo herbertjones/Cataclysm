@@ -69,7 +69,7 @@ void veh_interact::exec (game *gm, vehicle *v, int x, int y)
 
     crafting_inv.form_from_map(g, point(g->u.posx, g->u.posy), PICKUP_RANGE);
     crafting_inv += g->u.inv;
-    crafting_inv += g->u.weapon;
+    crafting_inv += g->u.weapon();
     if (g->u.has_bionic(bio_tools)) 
     {
         item tools(g->itypes[itm_toolset], g->turn);

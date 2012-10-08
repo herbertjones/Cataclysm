@@ -144,14 +144,14 @@ void npc::execute_action(game *g, npc_action action, int target)
   break;
 
  case npc_reload: {
-  moves -= weapon.reload_time(*this);
-  int ammo_index = weapon.pick_reload_ammo(*this, false);
-  if (!weapon.reload(*this, ammo_index))
+  moves -= weapon().reload_time(*this);
+  int ammo_index = weapon().pick_reload_ammo(*this, false);
+  if (!weapon().reload(*this, ammo_index))
    debugmsg("NPC reload failed.");
   recoil = 6;
   if (g->u_see(posx, posy, linet))
    g->add_msg("%s reloads %s %s.", name.c_str(), (male ? "his" : "her"),
-              weapon.tname().c_str());
+              weapon().tname().c_str());
   } break;
 
  case npc_sleep:
@@ -444,19 +444,19 @@ npc_action npc::method_of_attack(game *g, int target, int danger)
    return npc_reload;
   if (emergency(danger_assessment(g)) && alt_attack_available(g))
    return npc_alt_attack;
-  if (weapon.is_gun() && weapon.charges > 0) {
-   it_gun* gun = dynamic_cast<it_gun*>(weapon.type);
+  if (weapon().is_gun() && weapon().charges > 0) {
+   it_gun* gun = dynamic_cast<it_gun*>(weapon().type);
    if (dist > confident_range()) {
-    if (can_reload() && enough_time_to_reload(g, target, weapon))
+    if (can_reload() && enough_time_to_reload(g, target, weapon()))
      return npc_reload;
     else
      return npc_melee;
    }
    if (!wont_hit_friend(g, tarx, tary))
     return npc_avoid_friendly_fire;
-   else if (dist <= confident_range() / 3 && weapon.charges >= gun->burst &&
+   else if (dist <= confident_range() / 3 && weapon().charges >= gun->burst &&
             gun->burst > 1 &&
-            (target_HP >= weapon.curammo->damage * 3 || emergency(danger * 2)))
+            (target_HP >= weapon().curammo->damage * 3 || emergency(danger * 2)))
     return npc_shoot_burst;
    else
     return npc_shoot;
@@ -473,7 +473,7 @@ npc_action npc::method_of_attack(game *g, int target, int danger)
            enough_time_to_reload(g, target, inv[i])) {
    has_empty_gun = true;
    empty_guns.push_back(i);
-  } else if (inv[i].melee_value(sklevel) > weapon.melee_value(sklevel) * 1.1)
+  } else if (inv[i].melee_value(sklevel) > weapon().melee_value(sklevel) * 1.1)
    has_better_melee = true;
  }
 
@@ -678,13 +678,13 @@ void npc::use_escape_item(game *g, int index, int target)
 int npc::confident_range(int index)
 {
  
- if (index == -1 && (!weapon.is_gun() || weapon.charges <= 0))
+ if (index == -1 && (!weapon().is_gun() || weapon().charges <= 0))
   return 1;
 
  double deviation = 0;
  int max = 0;
  if (index == -1) {
-  it_gun* firing = dynamic_cast<it_gun*>(weapon.type);
+  it_gun* firing = dynamic_cast<it_gun*>(weapon().type);
 // We want at least 50% confidence that missed_by will be < .5.
 // missed_by = .00325 * deviation * range <= .5; deviation * range <= 156
 // (range <= 156 / deviation) is okay, so confident range is (156 / deviation)
@@ -713,11 +713,11 @@ int npc::confident_range(int index)
 
   deviation += .5 * encumb(bp_torso) + 2 * encumb(bp_eyes);
 
-  if (weapon.curammo == NULL)	// This shouldn't happen, but it does sometimes
+  if (weapon().curammo == NULL)	// This shouldn't happen, but it does sometimes
    debugmsg("%s has NULL curammo!", name.c_str()); // TODO: investigate this bug
   else {
-   deviation += .5 * weapon.curammo->accuracy;
-   max = weapon.range();
+   deviation += .5 * weapon().curammo->accuracy;
+   max = weapon().range();
   }
   deviation += .5 * firing->accuracy;
   deviation += 3 * recoil;
@@ -750,8 +750,8 @@ int npc::confident_range(int index)
 
 // Using 180 for now for extra-confident NPCs.
  int ret = (max > int(180 / deviation) ? max : int(180 / deviation));
- if (ret > weapon.curammo->range)
-  return weapon.curammo->range;
+ if (ret > weapon().curammo->range)
+  return weapon().curammo->range;
  return ret;
 }
 
@@ -801,19 +801,19 @@ bool npc::wont_hit_friend(game *g, int tarx, int tary, int index)
  
 bool npc::can_reload()
 {
- if (!weapon.is_gun())
+ if (!weapon().is_gun())
   return false;
- it_gun* gun = dynamic_cast<it_gun*> (weapon.type);
- return (weapon.charges < gun->clip && has_ammo(gun->ammo).size() > 0);
+ it_gun* gun = dynamic_cast<it_gun*> (weapon().type);
+ return (weapon().charges < gun->clip && has_ammo(gun->ammo).size() > 0);
 }
 
 bool npc::need_to_reload()
 {
- if (!weapon.is_gun())
+ if (!weapon().is_gun())
   return false;
- it_gun* gun = dynamic_cast<it_gun*> (weapon.type);
+ it_gun* gun = dynamic_cast<it_gun*> (weapon().type);
 
- return (weapon.charges < gun->clip * .1);
+ return (weapon().charges < gun->clip * .1);
 }
 
 bool npc::enough_time_to_reload(game *g, int target, item &gun)
@@ -823,7 +823,7 @@ bool npc::enough_time_to_reload(game *g, int target, item &gun)
  int dist, speed, linet;
 
  if (target == TARGET_PLAYER) {
-  if (g->sees_u(posx, posy, linet) && g->u.weapon.is_gun() && rltime > 200)
+  if (g->sees_u(posx, posy, linet) && g->u.weapon().is_gun() && rltime > 200)
    return false; // Don't take longer than 2 turns if player has a gun
   dist = rl_dist(posx, posy, g->u.posx, g->u.posy);
   speed = speed_estimate(g->u.current_speed(g));
@@ -912,7 +912,7 @@ void npc::move_to(game *g, int x, int y)
  else if (g->m.has_flag(bashable, x, y)) {
   moves -= 110;
   std::string bashsound;
-  int smashskill = int(str_cur / 2 + weapon.type->melee_dam);
+  int smashskill = int(str_cur / 2 + weapon().type->melee_dam);
   g->m.bash(x, y, smashskill, bashsound);
   g->sound(x, y, 18, bashsound);
  } else
@@ -1328,7 +1328,7 @@ npc_action npc::scan_new_items(game *g, int target)
            enough_time_to_reload(g, target, inv[i])) {
    has_empty_gun = true;
    empty_guns.push_back(i);
-  } else if (inv[i].melee_value(sklevel) > weapon.melee_value(sklevel) * 1.1)
+  } else if (inv[i].melee_value(sklevel) > weapon().melee_value(sklevel) * 1.1)
    has_better_melee = true;
  }
 
@@ -1379,7 +1379,7 @@ void npc::wield_best_melee(game *g)
   return;
  }
  if (index == -999) {
-  debugmsg("npc::wield_best_melee failed to find a melee weapon.");
+  debugmsg("npc::wield_best_melee failed to find a melee weapon().");
   move_pause();
   return;
  }
@@ -1427,8 +1427,8 @@ void npc::alt_attack(game *g, int target)
 
  int index;
  item *used;
- if (weapon.type->id == which) {
-  used = &weapon;
+ if (weapon().type->id == which) {
+  used = &weapon();
   index = -1;
  } else {
   for (int i = 0; i < inv.size(); i++) {

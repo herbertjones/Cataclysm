@@ -24,7 +24,7 @@ std::string melee_verb(technique_id tech, std::string your, player &p,
  * These all belong to class player.
  *
  * STATE QUERIES
- * bool is_armed() - True if we are armed with any weapon.
+ * bool is_armed() - True if we are armed with any weapon().
  * bool unarmed_attack() - True if we are NOT armed with any weapon, but still
  *  true if we're wielding a bionic weapon (at this point, just itm_bio_claws).
  *
@@ -38,13 +38,13 @@ std::string melee_verb(technique_id tech, std::string your, player &p,
 
 bool player::is_armed()
 {
- return (weapon.typeId() != 0 && !weapon.is_style());
+ return (weapon().typeId() != 0 && !weapon().is_style());
 }
 
 bool player::unarmed_attack()
 {
- return (weapon.typeId() == 0 || weapon.is_style() ||
-         weapon.has_flag(IF_UNARMED_WEAPON));
+ return (weapon().typeId() == 0 || weapon().is_style() ||
+         weapon().has_flag(IF_UNARMED_WEAPON));
 }
 
 int player::base_to_hit(bool real_life, int stat)
@@ -58,7 +58,7 @@ int player::hit_roll()
 {
  int stat = dex_cur;
 // Some martial arts use something else to determine hits!
- switch (weapon.typeId()) {
+ switch (weapon().typeId()) {
   case itm_style_tiger:
    stat = (str_cur * 2 + dex_cur) / 3;
    break;
@@ -69,7 +69,7 @@ int player::hit_roll()
    stat = (per_cur + dex_cur) / 2;
    break;
  }
- int numdice = base_to_hit(stat) + weapon.type->m_to_hit +
+ int numdice = base_to_hit(stat) + weapon().type->m_to_hit +
                disease_intensity(DI_ATTACK_BOOST);
  int sides = 10 - encumb(bp_torso);
  int best_bonus = 0;
@@ -84,21 +84,21 @@ int player::hit_roll()
  }
 
 // Using a bashing weapon?
- if (weapon.is_bashing_weapon()) {
+ if (weapon().is_bashing_weapon()) {
   int bash_bonus = int(sklevel[sk_bashing] / 3);
   if (bash_bonus > best_bonus)
    best_bonus = bash_bonus;
  }
 
 // Using a cutting weapon?
- if (weapon.is_cutting_weapon()) {
+ if (weapon().is_cutting_weapon()) {
   int cut_bonus = int(sklevel[sk_cutting] / 2);
   if (cut_bonus > best_bonus)
    best_bonus = cut_bonus;
  }
 
 // Using a spear?
- if (weapon.has_flag(IF_SPEAR) || weapon.has_flag(IF_STAB)) {
+ if (weapon().has_flag(IF_SPEAR) || weapon().has_flag(IF_STAB)) {
   int stab_bonus = int(sklevel[sk_stabbing] / 2);
   if (stab_bonus > best_bonus)
    best_bonus = stab_bonus;
@@ -140,14 +140,14 @@ int player::hit_mon(game *g, monster *z, bool allow_grab) // defaults to true
  int mondodge = (allow_grab ? z->dodge_roll() : z->dodge_roll() / 3);
 
  bool missed = (hit_roll() < mondodge ||
-                one_in(4 + dex_cur + weapon.type->m_to_hit));
+                one_in(4 + dex_cur + weapon().type->m_to_hit));
 
  int move_cost = attack_speed(*this, missed);
 
  if (missed) {
   int stumble_pen = stumble(*this);
   if (is_u) {	// Only display messages if this is the player
-   if (weapon.has_technique(TEC_FEINT, this))
+   if (weapon().has_technique(TEC_FEINT, this))
     g->add_msg("You feint.");
    else if (stumble_pen >= 60)
     g->add_msg("You miss and stumble with the momentum.");
@@ -157,10 +157,10 @@ int player::hit_mon(game *g, monster *z, bool allow_grab) // defaults to true
     g->add_msg("You miss.");
   }
   melee_practice(*this, false, unarmed_attack(),
-                 weapon.is_bashing_weapon(), weapon.is_cutting_weapon(),
-                 (weapon.has_flag(IF_SPEAR) || weapon.has_flag(IF_STAB)));
+                 weapon().is_bashing_weapon(), weapon().is_cutting_weapon(),
+                 (weapon().has_flag(IF_SPEAR) || weapon().has_flag(IF_STAB)));
   move_cost += stumble_pen;
-  if (weapon.has_technique(TEC_FEINT, this))
+  if (weapon().has_technique(TEC_FEINT, this))
    move_cost = rng(move_cost / 3, move_cost);
   moves -= move_cost;
   return 0;
@@ -177,7 +177,7 @@ int player::hit_mon(game *g, monster *z, bool allow_grab) // defaults to true
 
 // Moves lost to getting your weapon stuck
  int stuck_penalty = roll_stuck_penalty(z, (stab_dam >= cut_dam));
- if (weapon.is_style())
+ if (weapon().is_style())
   stuck_penalty = 0;
 
 // Pick one or more special attacks
@@ -194,7 +194,7 @@ int player::hit_mon(game *g, monster *z, bool allow_grab) // defaults to true
  melee_special_effects(g, z, NULL, critical_hit, bash_dam, cut_dam, stab_dam);
 
 // Make a rather quiet sound, to alert any nearby monsters
- if (weapon.typeId() != itm_style_ninjutsu) // Ninjutsu is silent!
+ if (weapon().typeId() != itm_style_ninjutsu) // Ninjutsu is silent!
   g->sound(posx, posy, 8, "");
 
  verb = melee_verb(technique, your, *this, bash_dam, cut_dam, stab_dam);
@@ -213,7 +213,7 @@ int player::hit_mon(game *g, monster *z, bool allow_grab) // defaults to true
   if (!unarmed_attack()) {
    item tmpweap = remove_weapon();
    dam += hit_mon(g, z, false); // False means a second grab isn't allowed
-   weapon = tmpweap;
+   set_weapon( tmpweap );
   } else
    dam += hit_mon(g, z, false); // False means a second grab isn't allowed
  }
@@ -248,7 +248,7 @@ void player::hit_player(game *g, player &p, bool allow_grab)
  if (missed) {
   int stumble_pen = stumble(*this);
   if (is_u) {	// Only display messages if this is the player
-   if (weapon.has_technique(TEC_FEINT, this))
+   if (weapon().has_technique(TEC_FEINT, this))
     g->add_msg("You feint.");
    else if (stumble_pen >= 60)
     g->add_msg("You miss and stumble with the momentum.");
@@ -258,10 +258,10 @@ void player::hit_player(game *g, player &p, bool allow_grab)
     g->add_msg("You miss.");
   }
   melee_practice(*this, false, unarmed_attack(),
-                 weapon.is_bashing_weapon(), weapon.is_cutting_weapon(),
-                 (weapon.has_flag(IF_SPEAR) || weapon.has_flag(IF_STAB)));
+                 weapon().is_bashing_weapon(), weapon().is_cutting_weapon(),
+                 (weapon().has_flag(IF_SPEAR) || weapon().has_flag(IF_STAB)));
   move_cost += stumble_pen;
-  if (weapon.has_technique(TEC_FEINT, this))
+  if (weapon().has_technique(TEC_FEINT, this))
    move_cost = rng(move_cost / 3, move_cost);
   moves -= move_cost;
   return;
@@ -305,7 +305,7 @@ void player::hit_player(game *g, player &p, bool allow_grab)
 
 // Moves lost to getting your weapon stuck
  int stuck_penalty = roll_stuck_penalty(NULL, (stab_dam >= cut_dam));
- if (weapon.is_style())
+ if (weapon().is_style())
   stuck_penalty = 0;
 
 // Pick one or more special attacks
@@ -322,7 +322,7 @@ void player::hit_player(game *g, player &p, bool allow_grab)
  melee_special_effects(g, NULL, &p, critical_hit, bash_dam, cut_dam, stab_dam);
 
 // Make a rather quiet sound, to alert any nearby monsters
- if (weapon.typeId() != itm_style_ninjutsu) // Ninjutsu is silent!
+ if (weapon().typeId() != itm_style_ninjutsu) // Ninjutsu is silent!
   g->sound(posx, posy, 8, "");
 
  p.hit(g, bp_hit, side, bash_dam, (cut_dam > stab_dam ? cut_dam : stab_dam));
@@ -341,7 +341,7 @@ void player::hit_player(game *g, player &p, bool allow_grab)
 
  if (allow_grab && technique == TEC_GRAB) {
 // Move our weapon to a temp slot, if it's not unarmed
-  if (p.weapon.has_technique(TEC_BREAK, &p) &&
+  if (p.weapon().has_technique(TEC_BREAK, &p) &&
       dice(p.dex_cur + p.sklevel[sk_melee], 12) >
       dice(dex_cur + sklevel[sk_melee], 10)) {
    if (is_u)
@@ -349,7 +349,7 @@ void player::hit_player(game *g, player &p, bool allow_grab)
   } else if (!unarmed_attack()) {
    item tmpweap = remove_weapon();
    hit_player(g, p, false); // False means a second grab isn't allowed
-   weapon = tmpweap;
+   set_weapon( tmpweap );
   } else
    hit_player(g, p, false); // False means a second grab isn't allowed
  }
@@ -362,7 +362,7 @@ void player::hit_player(game *g, player &p, bool allow_grab)
 
 int stumble(player &u)
 {
- int stumble_pen = 2 * u.weapon.volume() + u.weapon.weight();
+ int stumble_pen = 2 * u.weapon().volume() + u.weapon().weight();
  if (u.has_trait(PF_DEFT))
   stumble_pen = int(stumble_pen * .3) - 10;
  if (stumble_pen < 0)
@@ -386,11 +386,11 @@ bool player::scored_crit(int target_dodge)
   for (int i = 1; i <= int(sklevel[sk_unarmed] * .5); i++)
    chance += (50 / (2 + i));
  }
- if (weapon.type->m_to_hit > 0) {
-  for (int i = 1; i <= weapon.type->m_to_hit; i++)
+ if (weapon().type->m_to_hit > 0) {
+  for (int i = 1; i <= weapon().type->m_to_hit; i++)
    chance += (50 / (2 + i));
  } else if (chance < 0) {
-  for (int i = 0; i > weapon.type->m_to_hit; i--)
+  for (int i = 0; i > weapon().type->m_to_hit; i--)
    chance /= 2;
  }
  if (rng(0, 99) < chance + 4 * disease_intensity(DI_ATTACK_BOOST))
@@ -400,7 +400,7 @@ bool player::scored_crit(int target_dodge)
 // ... except sometimes we don't use dexteiry!
  int stat = dex_cur;
 // Some martial arts use something else to determine hits!
- switch (weapon.typeId()) {
+ switch (weapon().typeId()) {
   case itm_style_tiger:
    stat = (str_cur * 2 + dex_cur) / 3;
    break;
@@ -429,11 +429,11 @@ bool player::scored_crit(int target_dodge)
 // Skill level roll
  int best_skill = 0;
 
- if (weapon.is_bashing_weapon() && sklevel[sk_bashing] > best_skill)
+ if (weapon().is_bashing_weapon() && sklevel[sk_bashing] > best_skill)
   best_skill = sklevel[sk_bashing];
- if (weapon.is_cutting_weapon() && sklevel[sk_cutting] > best_skill)
+ if (weapon().is_cutting_weapon() && sklevel[sk_cutting] > best_skill)
   best_skill = sklevel[sk_cutting];
- if ((weapon.has_flag(IF_SPEAR) || weapon.has_flag(IF_STAB)) &&
+ if ((weapon().has_flag(IF_SPEAR) || weapon().has_flag(IF_STAB)) &&
      sklevel[sk_stabbing] > best_skill)
   best_skill = sklevel[sk_stabbing];
  if (unarmed_attack() && sklevel[sk_unarmed] > best_skill)
@@ -524,7 +524,7 @@ int player::roll_bash_damage(monster *z, bool crit)
  if (unarmed_attack())
   skill = sklevel[sk_unarmed];
  
- switch (weapon.typeId()) { // Some martial arts change which stat
+ switch (weapon().typeId()) { // Some martial arts change which stat
   case itm_style_crane:
    stat = (dex_cur * 2 + str_cur) / 3;
    break;
@@ -552,7 +552,7 @@ int player::roll_bash_damage(monster *z, bool crit)
   ret += rng(mindrunk, maxdrunk);
  }
 
- int bash_dam = int(stat / 2) + weapon.damage_bash(),
+ int bash_dam = int(stat / 2) + weapon().damage_bash(),
      bash_cap = 5 + stat + skill;
 
  if (unarmed_attack())
@@ -594,7 +594,7 @@ int player::roll_bash_damage(monster *z, bool crit)
 
 int player::roll_cut_damage(monster *z, bool crit)
 {
- if (weapon.has_flag(IF_SPEAR))
+ if (weapon().has_flag(IF_SPEAR))
   return 0;  // Stabs, doesn't cut!
  int z_armor_cut = (z == NULL ? 0 : z->armor_cut() - sklevel[sk_cutting] / 2);
 
@@ -603,7 +603,7 @@ int player::roll_cut_damage(monster *z, bool crit)
  if (z_armor_cut < 0)
   z_armor_cut = 0;
 
- int ret = weapon.damage_cut() - z_armor_cut;
+ int ret = weapon().damage_cut() - z_armor_cut;
 
  if (unarmed_attack() && !wearing_something_on(bp_hands)) {
   if (has_trait(PF_CLAWS))
@@ -647,8 +647,8 @@ int player::roll_stab_damage(monster *z, bool crit)
    ret++;
   if (has_trait(PF_THORNS))
    ret += 4;
- } else if (weapon.has_flag(IF_SPEAR) || weapon.has_flag(IF_STAB))
-  ret = int((weapon.damage_cut() - z_armor) / 4);
+ } else if (weapon().has_flag(IF_SPEAR) || weapon().has_flag(IF_STAB))
+  ret = int((weapon().damage_cut() - z_armor) / 4);
  else
   return 0; // Can't stab at all!
 
@@ -680,14 +680,14 @@ int player::roll_stuck_penalty(monster *z, bool stabbing)
  int basharm = (z == NULL ? 6 : z->armor_bash()),
      cutarm  = (z == NULL ? 6 : z->armor_cut());
  if (stabbing)
-  ret = weapon.damage_cut() * 3 + basharm * 3 + cutarm * 3 -
+  ret = weapon().damage_cut() * 3 + basharm * 3 + cutarm * 3 -
         dice(sklevel[sk_stabbing], 10);
  else
-  ret = weapon.damage_cut() * 4 + basharm * 5 + cutarm * 4 -
+  ret = weapon().damage_cut() * 4 + basharm * 5 + cutarm * 4 -
         dice(sklevel[sk_cutting], 10);
 
- if (ret >= weapon.damage_cut() * 10)
-  return weapon.damage_cut() * 10;
+ if (ret >= weapon().damage_cut() * 10)
+  return weapon().damage_cut() * 10;
  return (ret < 0 ? 0 : ret);
 }
 
@@ -715,14 +715,14 @@ technique_id player::pick_technique(game *g, monster *z, player *p,
 
  if (crit) { // Some are crit-only
 
-  if (weapon.has_technique(TEC_SWEEP, this) &&
+  if (weapon().has_technique(TEC_SWEEP, this) &&
       (z == NULL || !z->has_flag(MF_FLIES)) && !downed)
    possible.push_back(TEC_SWEEP);
 
-  if (weapon.has_technique(TEC_PRECISE, this))
+  if (weapon().has_technique(TEC_PRECISE, this))
    possible.push_back(TEC_PRECISE);
 
-  if (weapon.has_technique(TEC_BRUTAL, this) && !downed &&
+  if (weapon().has_technique(TEC_BRUTAL, this) && !downed &&
       str_cur + sklevel[sk_melee] >= 4 + base_str_req)
    possible.push_back(TEC_BRUTAL);
 
@@ -730,23 +730,23 @@ technique_id player::pick_technique(game *g, monster *z, player *p,
 
  if (possible.empty()) { // Use non-crits only if any crit-onlies aren't used
 
-  if (weapon.has_technique(TEC_DISARM, this) && !mon &&
-      p->weapon.typeId() != 0 && !p->weapon.has_flag(IF_UNARMED_WEAPON) &&
+  if (weapon().has_technique(TEC_DISARM, this) && !mon &&
+      p->weapon().typeId() != 0 && !p->weapon().has_flag(IF_UNARMED_WEAPON) &&
       dice(   dex_cur +    sklevel[sk_unarmed],  8) >
       dice(p->dex_cur + p->sklevel[sk_melee],   10))
    possible.push_back(TEC_DISARM);
 
-  if (weapon.has_technique(TEC_GRAB, this) && allowgrab)
+  if (weapon().has_technique(TEC_GRAB, this) && allowgrab)
    possible.push_back(TEC_GRAB);
 
-  if (weapon.has_technique(TEC_RAPID, this))
+  if (weapon().has_technique(TEC_RAPID, this))
    possible.push_back(TEC_RAPID);
 
-  if (weapon.has_technique(TEC_THROW, this) && !downed &&
+  if (weapon().has_technique(TEC_THROW, this) && !downed &&
       str_cur + sklevel[sk_melee] >= 4 + base_str_req * 4 + rng(-4, 4))
    possible.push_back(TEC_THROW);
 
-  if (weapon.has_technique(TEC_WIDE, this)) { // Count monsters
+  if (weapon().has_technique(TEC_WIDE, this)) { // Count monsters
    int enemy_count = 0;
    for (int x = posx - 1; x <= posx + 1; x++) {
     for (int y = posy - 1; y <= posy + 1; y++) {
@@ -810,7 +810,7 @@ void player::perform_technique(technique_id technique, game *g, monster *z,
   if (z != NULL && !z->has_flag(MF_FLIES)) {
    z->add_effect(ME_DOWNED, rng(1, 2));
    bash_dam += z->fall_damage();
-  } else if (p != NULL && !p->weapon.typeId() == itm_style_judo) {
+  } else if (p != NULL && !p->weapon().typeId() == itm_style_judo) {
    p->add_disease(DI_DOWNED, rng(1, 2), g);
    bash_dam += 3;
   }
@@ -842,7 +842,7 @@ void player::perform_technique(technique_id technique, game *g, monster *z,
    z->knock_back_from(g, posx + rng(-1, 1), posy + rng(-1, 1));
   } else if (p != NULL) {
    p->knock_back_from(g, posx + rng(-1, 1), posy + rng(-1, 1));
-   if (!p->weapon.typeId() == itm_style_judo)
+   if (!p->weapon().typeId() == itm_style_judo)
     p->add_disease(DI_DOWNED, rng(1, 2), g);
   }
   break;
@@ -918,41 +918,41 @@ technique_id player::pick_defensive_technique(game *g, monster *z, player *p)
  }
 
  blocks_left--;
- if (weapon.has_technique(TEC_WBLOCK_3) &&
+ if (weapon().has_technique(TEC_WBLOCK_3) &&
      dice(dex_cur + sklevel[sk_melee], 12) > dice(foe_melee_skill, 10))
   return TEC_WBLOCK_3;
 
- if (weapon.has_technique(TEC_WBLOCK_2) &&
+ if (weapon().has_technique(TEC_WBLOCK_2) &&
      dice(dex_cur + sklevel[sk_melee], 6) > dice(foe_melee_skill, 10))
   return TEC_WBLOCK_2;
  
- if (weapon.has_technique(TEC_WBLOCK_1) &&
+ if (weapon().has_technique(TEC_WBLOCK_1) &&
      dice(dex_cur + sklevel[sk_melee], 3) > dice(foe_melee_skill, 10))
   return TEC_WBLOCK_1;
 
- if (weapon.has_technique(TEC_DEF_DISARM, this) &&
-     z == NULL && p->weapon.typeId() != 0 &&
-     !p->weapon.has_flag(IF_UNARMED_WEAPON) &&
+ if (weapon().has_technique(TEC_DEF_DISARM, this) &&
+     z == NULL && p->weapon().typeId() != 0 &&
+     !p->weapon().has_flag(IF_UNARMED_WEAPON) &&
      dice(   dex_cur +    sklevel[sk_unarmed], 8) >
      dice(p->dex_cur + p->sklevel[sk_melee],  10))
   return TEC_DEF_DISARM;
 
- if (weapon.has_technique(TEC_DEF_THROW, this) && 
+ if (weapon().has_technique(TEC_DEF_THROW, this) && 
      str_cur + sklevel[sk_melee] >= foe_size + rng(-4, 4) &&
      hit_roll() > rng(1, 5) + foe_dodge && !one_in(3))
   return TEC_DEF_THROW;
 
- if (weapon.has_technique(TEC_COUNTER, this) &&
+ if (weapon().has_technique(TEC_COUNTER, this) &&
      hit_roll() > rng(1, 10) + foe_dodge && !one_in(3))
   return TEC_COUNTER;
 
- if (weapon.has_technique(TEC_BLOCK_LEGS, this) &&
+ if (weapon().has_technique(TEC_BLOCK_LEGS, this) &&
      (hp_cur[hp_leg_l] >= 20 || hp_cur[hp_leg_r] >= 20) &&
      dice(dex_cur + sklevel[sk_unarmed] + sklevel[sk_melee], 13) >
      dice(8 + foe_melee_skill, 10))
   return TEC_BLOCK_LEGS;
 
- if (weapon.has_technique(TEC_BLOCK, this) &&
+ if (weapon().has_technique(TEC_BLOCK, this) &&
      (hp_cur[hp_arm_l] >= 20 || hp_cur[hp_arm_r] >= 20) &&
      dice(dex_cur + sklevel[sk_unarmed] + sklevel[sk_melee], 16) >
      dice(6 + foe_melee_skill, 10))
@@ -996,9 +996,9 @@ void player::perform_defensive_technique(
    bash_dam *= .5;
    double reduction = 1.0;
 // Special reductions for certain styles
-   if (weapon.typeId() == itm_style_tai_chi)
+   if (weapon().typeId() == itm_style_tai_chi)
     reduction -= double(0.08 * double(per_cur - 6));
-   if (weapon.typeId() == itm_style_taekwando)
+   if (weapon().typeId() == itm_style_taekwando)
     reduction -= double(0.08 * double(str_cur - 6));
    if (reduction > 1.0)
     reduction = 1.0;
@@ -1017,7 +1017,7 @@ void player::perform_defensive_technique(
    stab_dam = 0;
    if (u_see)
     g->add_msg("%s block%s with %s %s.", You.c_str(), (is_npc() ? "s" : ""),
-               your.c_str(), weapon.tname().c_str());
+               your.c_str(), weapon().tname().c_str());
 
   case TEC_COUNTER:
    break; // Handled elsewhere
@@ -1193,7 +1193,7 @@ void player::melee_special_effects(game *g, monster *z, player *p, bool crit,
    p->moves -= rng(80, 120);
  }
 
- bool conductive = !wearing_something_on(bp_hands) && weapon.conductive();
+ bool conductive = !wearing_something_on(bp_hands) && weapon().conductive();
                    
  if (mon && z->has_flag(MF_ELECTRIC) && conductive) {
   hurtall(rng(0, 1));
@@ -1203,24 +1203,24 @@ void player::melee_special_effects(game *g, monster *z, player *p, bool crit,
  }
 
 // Glass weapons shatter sometimes
- if (weapon.made_of(GLASS) &&
-     rng(0, weapon.volume() + 8) < weapon.volume() + str_cur) {
+ if (weapon().made_of(GLASS) &&
+     rng(0, weapon().volume() + 8) < weapon().volume() + str_cur) {
   if (can_see)
-   g->add_msg("%s %s shatters!", Your.c_str(), weapon.tname(g).c_str());
+   g->add_msg("%s %s shatters!", Your.c_str(), weapon().tname(g).c_str());
   g->sound(posx, posy, 16, "");
 // Dump its contents on the ground
-  for (int i = 0; i < weapon.contents.size(); i++)
-   g->m.add_item(posx, posy, weapon.contents[i]);
-  hit(g, bp_arms, 1, 0, rng(0, weapon.volume() * 2));// Take damage
-  if (weapon.is_two_handed(this))// Hurt left arm too, if it was big
-   hit(g, bp_arms, 0, 0, rng(0, weapon.volume()));
-  cut_dam += rng(0, 5 + int(weapon.volume() * 1.5));// Hurt the monster extra
+  for (int i = 0; i < weapon().contents.size(); i++)
+   g->m.add_item(posx, posy, weapon().contents[i]);
+  hit(g, bp_arms, 1, 0, rng(0, weapon().volume() * 2));// Take damage
+  if (weapon().is_two_handed(this))// Hurt left arm too, if it was big
+   hit(g, bp_arms, 0, 0, rng(0, weapon().volume()));
+  cut_dam += rng(0, 5 + int(weapon().volume() * 1.5));// Hurt the monster extra
   remove_weapon();
  }
 
 // Getting your weapon stuck
  int cutting_penalty = roll_stuck_penalty(z, stab_dam > cut_dam);
- if (weapon.has_flag(IF_MESSY)) { // e.g. chainsaws
+ if (weapon().has_flag(IF_MESSY)) { // e.g. chainsaws
   cutting_penalty /= 6; // Harder to get stuck
   for (int x = tarposx - 1; x <= tarposx + 1; x++) {
    for (int y = tarposy - 1; y <= tarposy + 1; y++) {
@@ -1237,9 +1237,9 @@ void player::melee_special_effects(game *g, monster *z, player *p, bool crit,
  if (!unarmed_attack() && cutting_penalty > dice(str_cur * 2, 20)) {
   if (is_u)
    g->add_msg("Your %s gets stuck in %s, pulling it out of your hands!",
-              weapon.tname().c_str(), target.c_str());
+              weapon().tname().c_str(), target.c_str());
   if (mon) {
-   if (weapon.has_flag(IF_SPEAR) || weapon.has_flag(IF_STAB))
+   if (weapon().has_flag(IF_SPEAR) || weapon().has_flag(IF_STAB))
     z->speed *= .7;
    else
     z->speed *= .85;
@@ -1255,13 +1255,13 @@ void player::melee_special_effects(game *g, monster *z, player *p, bool crit,
    moves -= cutting_penalty;
   if (cutting_penalty >= 50 && is_u)
    g->add_msg("Your %s gets stuck in %s, but you yank it free.",
-              weapon.tname().c_str(), target.c_str());
-  if (mon && (weapon.has_flag(IF_SPEAR) || weapon.has_flag(IF_STAB)))
+              weapon().tname().c_str(), target.c_str());
+  if (mon && (weapon().has_flag(IF_SPEAR) || weapon().has_flag(IF_STAB)))
    z->speed *= .9;
  }
 
 // Finally, some special effects for martial arts
- switch (weapon.typeId()) {
+ switch (weapon().typeId()) {
 
   case itm_style_karate:
    dodges_left++;
@@ -1460,7 +1460,7 @@ std::vector<special_attack> player::mutation_attacks(monster *z, player *p)
    num_attacks = 3;
   if (has_trait(PF_ARM_TENTACLES_8))
    num_attacks = 7;
-  if (weapon.is_two_handed(this))
+  if (weapon().is_two_handed(this))
    num_attacks--;
 
   for (int i = 0; i < num_attacks; i++) {
@@ -1484,37 +1484,37 @@ std::string melee_verb(technique_id tech, std::string your, player &p,
 {
  std::string s = (p.is_npc() ? "s" : "");
 
- if (tech != TEC_NULL && p.weapon.is_style() &&
-     p.weapon.style_data(tech).name != "")
-  return p.weapon.style_data(tech).name + s;
+ if (tech != TEC_NULL && p.weapon().is_style() &&
+     p.weapon().style_data(tech).name != "")
+  return p.weapon().style_data(tech).name + s;
 
  std::stringstream ret;
 
  switch (tech) {
 
   case TEC_SWEEP:
-   ret << "sweep" << s << "" << s << " " << your << " " << p.weapon.tname() <<
+   ret << "sweep" << s << "" << s << " " << your << " " << p.weapon().tname() <<
           " at";
    break;
 
   case TEC_PRECISE:
-   ret << "jab" << s << " " << your << " " << p.weapon.tname() << " at";
+   ret << "jab" << s << " " << your << " " << p.weapon().tname() << " at";
    break;
 
   case TEC_BRUTAL:
-   ret << "slam" << s << " " << your << " " << p.weapon.tname() << " against";
+   ret << "slam" << s << " " << your << " " << p.weapon().tname() << " against";
    break;
 
   case TEC_GRAB:
-   ret << "wrap" << s << " " << your << " " << p.weapon.tname() << " around";
+   ret << "wrap" << s << " " << your << " " << p.weapon().tname() << " around";
    break;
 
   case TEC_WIDE:
-   ret << "swing" << s << " " << your << " " << p.weapon.tname() << " wide at";
+   ret << "swing" << s << " " << your << " " << p.weapon().tname() << " wide at";
    break;
 
   case TEC_THROW:
-   ret << "use" << s << " " << your << " " << p.weapon.tname() << " to toss";
+   ret << "use" << s << " " << your << " " << p.weapon().tname() << " to toss";
    break;
 
   default: // No tech, so check our damage levels
@@ -1589,7 +1589,7 @@ void melee_practice(player &u, bool hit, bool unarmed, bool bashing,
 
 int attack_speed(player &u, bool missed)
 {
- int move_cost = u.weapon.attack_time() + 20 * u.encumb(bp_torso);
+ int move_cost = u.weapon().attack_time() + 20 * u.encumb(bp_torso);
  if (u.has_trait(PF_LIGHT_BONES))
   move_cost *= .9;
  if (u.has_trait(PF_HOLLOW_BONES))

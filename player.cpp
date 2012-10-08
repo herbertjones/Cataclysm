@@ -168,7 +168,6 @@ player& player::operator= (const player & rhs)
  worn = rhs.worn;
  styles = rhs.styles;
  style_selected = rhs.style_selected;
- weapon = rhs.weapon;
 
  ret_null = rhs.ret_null;
 
@@ -181,7 +180,6 @@ player& player::operator= (const player & rhs)
 void player::normalize(game *g)
 {
  ret_null = item(g->itypes[0], 0);
- weapon   = item(g->itypes[0], 0);
  style_selected = itm_null;
  for (int i = 0; i < num_hp_parts; i++) {
   hp_max[i] = 60 + str_max * 3;
@@ -663,10 +661,10 @@ std::string player::save_info()
  }
  for (int i = 0; i < worn.size(); i++)
   dump << "W " << worn[i].save_info() << std::endl;
- if (!weapon.is_null())
-  dump << "w " << weapon.save_info() << std::endl;
- for (int j = 0; j < weapon.contents.size(); j++)
-  dump << "c " << weapon.contents[j].save_info() << std::endl;
+ if (!weapon().is_null())
+  dump << "w " << weapon().save_info() << std::endl;
+ for (int j = 0; j < weapon().contents.size(); j++)
+  dump << "c " << weapon().contents[j].save_info() << std::endl;
 
  return dump.str();
 }
@@ -1467,7 +1465,7 @@ void player::disp_morale()
 void player::disp_status(WINDOW *w, game *g)
 {
  mvwprintz(w, 1, 0, c_ltgray, "Weapon: %s", weapname().c_str());
- if (weapon.is_gun()) {
+ if (weapon().is_gun()) {
    int adj_recoil = recoil + driving_recoil;
        if (adj_recoil >= 36)
    mvwprintz(w, 1, 30, c_red,    "Recoil");
@@ -1774,7 +1772,7 @@ void player::power_bionics(game *g)
        tmp->powered = false;
        g->add_msg("%s powered off.", bionics[tmp->id].name.c_str());
       } else if (power_level >= bionics[tmp->id].power_cost ||
-                 (weapon.type->id == itm_bio_claws && tmp->id == bio_claws))
+                 (weapon().type->id == itm_bio_claws && tmp->id == bio_claws))
        activate_bionic(b, g);
      } else
       mvwprintz(wBio, 22, 0, c_ltred, "\
@@ -1884,7 +1882,7 @@ void player::pause(game *g)
  }
 
 // Meditation boost for Toad Style
- if (weapon.type->id == itm_style_toad && activity.type == ACT_NULL) {
+ if (weapon().type->id == itm_style_toad && activity.type == ACT_NULL) {
   int arm_amount = 1 + (int_cur - 6) / 3 + (per_cur - 6) / 3;
   int arm_max = (int_cur + per_cur) / 2;
   if (arm_amount > 3)
@@ -1899,7 +1897,7 @@ int player::throw_range(int index)
 {
  item tmp;
  if (index == -1)
-  tmp = weapon;
+  tmp = weapon();
  else if (index == -2)
   return -1;
  else
@@ -2024,9 +2022,9 @@ int player::talk_skill()
 int player::intimidation()
 {
  int ret = str_cur * 2;
- if (weapon.is_gun())
+ if (weapon().is_gun())
   ret += 10;
- if (weapon.damage_bash() >= 12 || weapon.damage_cut() >= 12)
+ if (weapon().damage_bash() >= 12 || weapon().damage_cut() >= 12)
   ret += 5;
  if (has_trait(PF_DEFORMED2))
   ret += 3;
@@ -2121,7 +2119,7 @@ void player::hit(game *g, body_part bphurt, int side, int dam, int cut)
  break;
  case bp_hands: // Fall through to arms
  case bp_arms:
-  if (side == 1 || side == 3 || weapon.is_two_handed(this))
+  if (side == 1 || side == 3 || weapon().is_two_handed(this))
    recoil += int(dam / 3);
   if (side == 0 || side == 3) {
    hp_cur[hp_arm_l] -= dam;
@@ -2919,7 +2917,7 @@ void player::vomit(game *g)
 int player::weight_carried()
 {
  int ret = 0;
- ret += weapon.weight();
+ ret += weapon().weight();
  for (int i = 0; i < worn.size(); i++)
   ret += worn[i].weight();
  for (int i = 0; i < inv.size(); i++) {
@@ -3102,7 +3100,7 @@ void player::i_add(item it, game *g)
 
 bool player::has_active_item(itype_id id)
 {
- if (weapon.type->id == id && weapon.active)
+ if (weapon().type->id == id && weapon().active)
   return true;
  for (int i = 0; i < inv.size(); i++) {
   if (inv[i].type->id == id && inv[i].active)
@@ -3114,8 +3112,8 @@ bool player::has_active_item(itype_id id)
 int player::active_item_charges(itype_id id)
 {
  int max = 0;
- if (weapon.type->id == id && weapon.active)
-  max = weapon.charges;
+ if (weapon().type->id == id && weapon().active)
+  max = weapon().charges;
  for (int i = 0; i < inv.size(); i++) {
   for (int j = 0; j < inv.stack_at(i).size(); j++) {
    if (inv.stack_at(i)[j].type->id == id && inv.stack_at(i)[j].active &&
@@ -3130,11 +3128,11 @@ void player::process_active_items(game *g)
 {
  it_tool* tmp;
  iuse use;
- if (weapon.is_artifact() && weapon.is_tool())
-  g->process_artifact(&weapon, this, true);
- else if (weapon.active) {
-  if (weapon.has_flag(IF_CHARGE)) { // We're chargin it up!
-   if (weapon.charges == 8) {
+ if (weapon().is_artifact() && weapon().is_tool())
+  g->process_artifact(&weapon(), this, true);
+ else if (weapon().active) {
+  if (weapon().has_flag(IF_CHARGE)) { // We're chargin it up!
+   if (weapon().charges == 8) {
     bool maintain = false;
     if (has_charges(itm_UPS_on, 4)) {
      use_charges(itm_UPS_on, 4);
@@ -3145,53 +3143,53 @@ void player::process_active_items(game *g)
     }
     if (maintain) {
      if (one_in(20)) {
-      g->add_msg("Your %s discharges!", weapon.tname().c_str());
+      g->add_msg("Your %s discharges!", weapon().tname().c_str());
       point target(posx + rng(-12, 12), posy + rng(-12, 12));
       std::vector<point> traj = line_to(posx, posy, target.x, target.y, 0);
       g->fire(*this, target.x, target.y, traj, false);
      } else
-      g->add_msg("Your %s beeps alarmingly.", weapon.tname().c_str());
+      g->add_msg("Your %s beeps alarmingly.", weapon().tname().c_str());
     }
    } else {
-    if (has_charges(itm_UPS_on, 1 + weapon.charges)) {
-     use_charges(itm_UPS_on, 1 + weapon.charges);
-     weapon.poison++;
-    } else if (has_charges(itm_UPS_off, 1 + weapon.charges)) {
-     use_charges(itm_UPS_off, 1 + weapon.charges);
-     weapon.poison++;
+    if (has_charges(itm_UPS_on, 1 + weapon().charges)) {
+     use_charges(itm_UPS_on, 1 + weapon().charges);
+     weapon().poison++;
+    } else if (has_charges(itm_UPS_off, 1 + weapon().charges)) {
+     use_charges(itm_UPS_off, 1 + weapon().charges);
+     weapon().poison++;
     } else {
-     g->add_msg("Your %s spins down.", weapon.tname().c_str());
-     if (weapon.poison <= 0) {
-      weapon.charges--;
-      weapon.poison = weapon.charges - 1;
+     g->add_msg("Your %s spins down.", weapon().tname().c_str());
+     if (weapon().poison <= 0) {
+      weapon().charges--;
+      weapon().poison = weapon().charges - 1;
      } else
-      weapon.poison--;
-     if (weapon.charges == 0)
-      weapon.active = false;
+      weapon().poison--;
+     if (weapon().charges == 0)
+      weapon().active = false;
     }
-    if (weapon.poison >= weapon.charges) {
-     weapon.charges++;
-     weapon.poison = 0;
+    if (weapon().poison >= weapon().charges) {
+     weapon().charges++;
+     weapon().poison = 0;
     }
    }
    return;
-  } // if (weapon.has_flag(IF_CHARGE))
+  } // if (weapon().has_flag(IF_CHARGE))
 
      
-  if (!weapon.is_tool()) {
-   debugmsg("%s is active, but it is not a tool.", weapon.tname().c_str());
+  if (!weapon().is_tool()) {
+   debugmsg("%s is active, but it is not a tool.", weapon().tname().c_str());
    return;
   }
-  tmp = dynamic_cast<it_tool*>(weapon.type);
-  (use.*tmp->use)(g, this, &weapon, true);
+  tmp = dynamic_cast<it_tool*>(weapon().type);
+  (use.*tmp->use)(g, this, &weapon(), true);
   if (tmp->turns_per_charge > 0 && int(g->turn) % tmp->turns_per_charge == 0)
-   weapon.charges--;
-  if (weapon.charges <= 0) {
-   (use.*tmp->use)(g, this, &weapon, false);
+   weapon().charges--;
+  if (weapon().charges <= 0) {
+   (use.*tmp->use)(g, this, &weapon(), false);
    if (tmp->revert_to == itm_null)
-    weapon = ret_null;
+    inv.set_weapon( ret_null );
    else
-    weapon.type = g->itypes[tmp->revert_to];
+    weapon().type = g->itypes[tmp->revert_to];
   }
  }
  for (int i = 0; i < inv.size(); i++) {
@@ -3229,8 +3227,8 @@ void player::process_active_items(game *g)
 
 item player::remove_weapon()
 {
- item tmp = weapon;
- weapon = ret_null;
+ item tmp = weapon();
+ inv.set_weapon( ret_null );
 // We need to remove any boosts related to our style
  rem_disease(DI_ATTACK_BOOST);
  rem_disease(DI_DODGE_BOOST);
@@ -3245,11 +3243,11 @@ void player::remove_mission_items(int mission_id)
 {
  if (mission_id == -1)
   return;
- if (weapon.mission_id == mission_id)
+ if (weapon().mission_id == mission_id)
   remove_weapon();
  else {
-  for (int i = 0; i < weapon.contents.size(); i++) {
-   if (weapon.contents[i].mission_id == mission_id)
+  for (int i = 0; i < weapon().contents.size(); i++) {
+   if (weapon().contents[i].mission_id == mission_id)
     remove_weapon();
   }
  }
@@ -3287,11 +3285,11 @@ void player::remove_mission_items(int mission_id)
 item player::i_rem(char let)
 {
  item tmp;
- if (weapon.invlet == let) {
-  if (weapon.type->id > num_items && weapon.type->id < num_all_items)
+ if (weapon().invlet == let) {
+  if (weapon().type->id > num_items && weapon().type->id < num_all_items)
    return ret_null;
-  tmp = weapon;
-  weapon = ret_null;
+  tmp = weapon();
+  inv.set_weapon( ret_null );
   return tmp;
  }
  for (int i = 0; i < worn.size(); i++) {
@@ -3309,7 +3307,7 @@ item player::i_rem(char let)
 item player::i_rem(itype_id type)
 {
  item ret;
- if (weapon.type->id == type)
+ if (weapon().type->id == type)
   return remove_weapon();
  for (int i = 0; i < inv.size(); i++) {
   if (inv[i].type->id == type)
@@ -3322,8 +3320,8 @@ item& player::i_at(char let)
 {
  if (let == KEY_ESCAPE)
   return ret_null;
- if (weapon.invlet == let)
-  return weapon;
+ if (weapon().invlet == let)
+  return weapon();
  for (int i = 0; i < worn.size(); i++) {
   if (worn[i].invlet == let)
    return worn[i];
@@ -3336,8 +3334,8 @@ item& player::i_at(char let)
 
 item& player::i_of_type(itype_id type)
 {
- if (weapon.type->id == type)
-  return weapon;
+ if (weapon().type->id == type)
+  return weapon();
  for (int i = 0; i < worn.size(); i++) {
   if (worn[i].type->id == type)
    return worn[i];
@@ -3352,8 +3350,8 @@ item& player::i_of_type(itype_id type)
 std::vector<item> player::inv_dump()
 {
  std::vector<item> ret;
- if (weapon.type->id != 0 && weapon.type->id < num_items)
-  ret.push_back(weapon);
+ if (weapon().type->id != 0 && weapon().type->id < num_items)
+  ret.push_back(weapon());
  for (int i = 0; i < worn.size(); i++)
   ret.push_back(worn[i]);
  for(int i = 0; i < inv.size(); i++) {
@@ -3373,10 +3371,10 @@ item player::i_remn(int index)
 void player::use_amount(itype_id it, int quantity, bool use_container)
 {
  bool used_weapon_contents = false;
- for (int i = 0; i < weapon.contents.size(); i++) {
-  if (weapon.contents[0].type->id == it) {
+ for (int i = 0; i < weapon().contents.size(); i++) {
+  if (weapon().contents[0].type->id == it) {
    quantity--;
-   weapon.contents.erase(weapon.contents.begin() + 0);
+   weapon().contents.erase(weapon().contents.begin() + 0);
    i--;
    used_weapon_contents = true;
   }
@@ -3384,7 +3382,7 @@ void player::use_amount(itype_id it, int quantity, bool use_container)
  if (use_container && used_weapon_contents)
   remove_weapon();
 
- if (weapon.type->id == it) {
+ if (weapon().type->id == it) {
   quantity--;
   remove_weapon();
  }
@@ -3401,36 +3399,36 @@ void player::use_charges(itype_id it, int quantity)
   return;
  }
 // Start by checking weapon contents
- for (int i = 0; i < weapon.contents.size(); i++) {
-  if (weapon.contents[i].type->id == it) {
-   if (weapon.contents[i].charges > 0 &&
-       weapon.contents[i].charges <= quantity) {
-    quantity -= weapon.contents[i].charges;
-    if (weapon.contents[i].destroyed_at_zero_charges()) {
-     weapon.contents.erase(weapon.contents.begin() + i);
+ for (int i = 0; i < weapon().contents.size(); i++) {
+  if (weapon().contents[i].type->id == it) {
+   if (weapon().contents[i].charges > 0 &&
+       weapon().contents[i].charges <= quantity) {
+    quantity -= weapon().contents[i].charges;
+    if (weapon().contents[i].destroyed_at_zero_charges()) {
+     weapon().contents.erase(weapon().contents.begin() + i);
      i--;
     } else
-     weapon.contents[i].charges = 0;
+     weapon().contents[i].charges = 0;
     if (quantity == 0)
      return;
    } else {
-    weapon.contents[i].charges -= quantity;
+    weapon().contents[i].charges -= quantity;
     return;
    }
   }
  }
   
- if (weapon.type->id == it) {
-  if (weapon.charges > 0 && weapon.charges <= quantity) {
-   quantity -= weapon.charges;
-   if (weapon.destroyed_at_zero_charges())
+ if (weapon().type->id == it) {
+  if (weapon().charges > 0 && weapon().charges <= quantity) {
+   quantity -= weapon().charges;
+   if (weapon().destroyed_at_zero_charges())
     remove_weapon();
    else
-    weapon.charges = 0;
+    weapon().charges = 0;
    if (quantity == 0)
     return;
    } else {
-    weapon.charges -= quantity;
+    weapon().charges -= quantity;
     return;
    }
   }
@@ -3454,10 +3452,10 @@ int player::butcher_factor()
    }
   }
  }
- if (weapon.damage_cut() >= 10 && !weapon.has_flag(IF_SPEAR)) {
-  int factor = weapon.volume() * 5 - weapon.weight() * 1.5 -
-               weapon.damage_cut();
-  if (weapon.damage_cut() <= 20)
+ if (weapon().damage_cut() >= 10 && !weapon().has_flag(IF_SPEAR)) {
+  int factor = weapon().volume() * 5 - weapon().weight() * 1.5 -
+               weapon().damage_cut();
+  if (weapon().damage_cut() <= 20)
    factor *= 2;
   if (factor < lowest_factor)
    lowest_factor = factor;
@@ -3499,8 +3497,8 @@ bool player::is_wearing(itype_id it)
 
 bool player::has_artifact_with(art_effect_passive effect)
 {
- if (weapon.is_artifact() && weapon.is_tool()) {
-  it_artifact_tool *tool = dynamic_cast<it_artifact_tool*>(weapon.type);
+ if (weapon().is_artifact() && weapon().is_tool()) {
+  it_artifact_tool *tool = dynamic_cast<it_artifact_tool*>(weapon().type);
   for (int i = 0; i < tool->effects_wielded.size(); i++) {
    if (tool->effects_wielded[i] == effect)
     return true;
@@ -3544,10 +3542,10 @@ int player::amount_of(itype_id it)
  if (it == itm_toolset && has_bionic(bio_tools))
   return 1;
  int quantity = 0;
- if (weapon.type->id == it)
+ if (weapon().type->id == it)
   quantity++;
- for (int i = 0; i < weapon.contents.size(); i++) {
-  if (weapon.contents[i].type->id == it)
+ for (int i = 0; i < weapon().contents.size(); i++) {
+  if (weapon().contents[i].type->id == it)
    quantity++;
  }
  quantity += inv.amount_of(it);
@@ -3568,11 +3566,11 @@ int player::charges_of(itype_id it)
    return 0;
  }
  int quantity = 0;
- if (weapon.type->id == it)
-  quantity += weapon.charges;
- for (int i = 0; i < weapon.contents.size(); i++) {
-  if (weapon.contents[i].type->id == it)
-   quantity += weapon.contents[i].charges;
+ if (weapon().type->id == it)
+  quantity += weapon().charges;
+ for (int i = 0; i < weapon().contents.size(); i++) {
+  if (weapon().contents[i].type->id == it)
+   quantity += weapon().contents[i].charges;
  }
  quantity += inv.charges_of(it);
  return quantity;
@@ -3592,7 +3590,7 @@ bool player::has_watertight_container()
 
 bool player::has_weapon_or_armor(char let)
 {
- if (weapon.invlet == let)
+ if (weapon().invlet == let)
   return true;
  for (int i = 0; i < worn.size(); i++) {
   if (worn[i].invlet == let)
@@ -3608,7 +3606,7 @@ bool player::has_item(char let)
 
 bool player::has_item(item *it)
 {
- if (it == &weapon)
+ if (it == &weapon())
   return true;
  for (int i = 0; i < worn.size(); i++) {
   if (it == &(worn[i]))
@@ -3621,10 +3619,10 @@ bool player::has_mission_item(int mission_id)
 {
  if (mission_id == -1)
   return false;
- if (weapon.mission_id == mission_id)
+ if (weapon().mission_id == mission_id)
   return true;
- for (int i = 0; i < weapon.contents.size(); i++) {
-  if (weapon.contents[i].mission_id == mission_id)
+ for (int i = 0; i < weapon().contents.size(); i++) {
+  if (weapon().contents[i].mission_id == mission_id)
    return true;
  }
  for (int i = 0; i < inv.size(); i++) {
@@ -3642,7 +3640,7 @@ bool player::has_mission_item(int mission_id)
 
 int player::lookup_item(char let)
 {
- if (weapon.invlet == let)
+ if (weapon().invlet == let)
   return -1;
 
  for (int i = 0; i < inv.size(); i++) {
@@ -3663,21 +3661,21 @@ bool player::eat(game *g, int index)
   g->add_msg("You do not have that item.");
   return false;
  } else if (index == -1) {
-  if (weapon.is_food_container(this)) {
-   eaten = &weapon.contents[0];
+  if (weapon().is_food_container(this)) {
+   eaten = &weapon().contents[0];
    which = -2;
-   if (weapon.contents[0].is_food())
-    comest = dynamic_cast<it_comest*>(weapon.contents[0].type);
-  } else if (weapon.is_food(this)) {
-   eaten = &weapon;
+   if (weapon().contents[0].is_food())
+    comest = dynamic_cast<it_comest*>(weapon().contents[0].type);
+  } else if (weapon().is_food(this)) {
+   eaten = &weapon();
    which = -1;
-   if (weapon.is_food())
-    comest = dynamic_cast<it_comest*>(weapon.type);
+   if (weapon().is_food())
+    comest = dynamic_cast<it_comest*>(weapon().type);
   } else {
    if (!is_npc())
-    g->add_msg("You can't eat your %s.", weapon.tname(g).c_str());
+    g->add_msg("You can't eat your %s.", weapon().tname(g).c_str());
    else
-    debugmsg("%s tried to eat a %s", name.c_str(), weapon.tname(g).c_str());
+    debugmsg("%s tried to eat a %s", name.c_str(), weapon().tname(g).c_str());
    return false;
   }
  } else {
@@ -3855,11 +3853,11 @@ bool player::eat(game *g, int index)
  eaten->charges--;
  if (eaten->charges <= 0) {
   if (which == -1)
-   weapon = ret_null;
+   inv.set_weapon( ret_null );
   else if (which == -2) {
-   weapon.contents.erase(weapon.contents.begin());
+   weapon().contents.erase(weapon().contents.begin());
    if (!is_npc())
-    g->add_msg("You are now wielding an empty %s.", weapon.tname(g).c_str());
+    g->add_msg("You are now wielding an empty %s.", weapon().tname(g).c_str());
   } else if (which >= 0 && which < inv.size())
    inv.remove_item(which);
   else if (which >= inv.size()) {
@@ -3878,21 +3876,21 @@ bool player::eat(game *g, int index)
 
 bool player::wield(game *g, int index)
 {
- if (weapon.has_flag(IF_NO_UNWIELD)) {
+ if (weapon().has_flag(IF_NO_UNWIELD)) {
   g->add_msg("You cannot unwield your %s!  Withdraw them with 'p'.",
-             weapon.tname().c_str());
+             weapon().tname().c_str());
   return false;
  }
  if (index == -3) {
   bool pickstyle = (!styles.empty());
-  if (weapon.is_style())
+  if (weapon().is_style())
    remove_weapon();
   else if (!is_armed()) {
    if (!pickstyle) {
     g->add_msg("You are already wielding nothing.");
     return false;
    }
-  } else if (volume_carried() + weapon.volume() < volume_capacity()) {
+  } else if (volume_carried() + weapon().volume() < volume_capacity()) {
    inv.push_back(remove_weapon());
    inv_sorted = false;
    moves -= 20;
@@ -3900,7 +3898,7 @@ bool player::wield(game *g, int index)
    if (!pickstyle)
     return true;
   } else if (query_yn("No space in inventory for your %s.  Drop it?",
-                      weapon.tname(g).c_str())) {
+                      weapon().tname(g).c_str())) {
    g->m.add_item(posx, posy, remove_weapon());
    recoil = 0;
    if (!pickstyle)
@@ -3909,8 +3907,8 @@ bool player::wield(game *g, int index)
    return false;
 
   if (pickstyle) {
-   weapon = item( g->itypes[style_selected], 0 );
-   weapon.invlet = ':';
+   inv.set_weapon( item( g->itypes[style_selected], 0 ) );
+   weapon().invlet = ':';
    return true;
   }
  }
@@ -3928,39 +3926,39 @@ bool player::wield(game *g, int index)
   return false;
  }
  if (!is_armed()) {
-  weapon = inv.remove_item(index);
-  if (weapon.is_artifact() && weapon.is_tool()) {
-   it_artifact_tool *art = dynamic_cast<it_artifact_tool*>(weapon.type);
+  inv.set_weapon( inv.remove_item(index) );
+  if (weapon().is_artifact() && weapon().is_tool()) {
+   it_artifact_tool *art = dynamic_cast<it_artifact_tool*>(weapon().type);
    g->add_artifact_messages(art->effects_wielded);
   }
   moves -= 30;
-  last_item = itype_id(weapon.type->id);
+  last_item = itype_id(weapon().type->id);
   return true;
- } else if (volume_carried() + weapon.volume() - inv[index].volume() <
+ } else if (volume_carried() + weapon().volume() - inv[index].volume() <
             volume_capacity()) {
   item tmpweap = remove_weapon();
-  weapon = inv.remove_item(index);
+  inv.set_weapon( inv.remove_item(index) );
   inv.push_back(tmpweap);
   inv_sorted = false;
   moves -= 45;
-  if (weapon.is_artifact() && weapon.is_tool()) {
-   it_artifact_tool *art = dynamic_cast<it_artifact_tool*>(weapon.type);
+  if (weapon().is_artifact() && weapon().is_tool()) {
+   it_artifact_tool *art = dynamic_cast<it_artifact_tool*>(weapon().type);
    g->add_artifact_messages(art->effects_wielded);
   }
-  last_item = itype_id(weapon.type->id);
+  last_item = itype_id(weapon().type->id);
   return true;
  } else if (query_yn("No space in inventory for your %s.  Drop it?",
-                     weapon.tname(g).c_str())) {
+                     weapon().tname(g).c_str())) {
   g->m.add_item(posx, posy, remove_weapon());
-  weapon = inv[index];
+  inv.set_weapon( inv[index] );
   inv.remove_item(index);
   inv_sorted = false;
   moves -= 30;
-  if (weapon.is_artifact() && weapon.is_tool()) {
-   it_artifact_tool *art = dynamic_cast<it_artifact_tool*>(weapon.type);
+  if (weapon().is_artifact() && weapon().is_tool()) {
+   it_artifact_tool *art = dynamic_cast<it_artifact_tool*>(weapon().type);
    g->add_artifact_messages(art->effects_wielded);
   }
-  last_item = itype_id(weapon.type->id);
+  last_item = itype_id(weapon().type->id);
   return true;
  }
 
@@ -3985,8 +3983,8 @@ bool player::wear(game *g, char let)
 {
  item* to_wear = NULL;
  int index = -1;
- if (weapon.invlet == let) {
-  to_wear = &weapon;
+ if (weapon().invlet == let) {
+  to_wear = &weapon();
   index = -2;
  } else {
   for (int i = 0; i < inv.size(); i++) {
@@ -4007,7 +4005,7 @@ bool player::wear(game *g, char let)
   return false;
 
  if (index == -2)
-  weapon = ret_null;
+  inv.set_weapon( ret_null );
  else
   inv.remove_item(index);
 
@@ -4156,7 +4154,7 @@ void player::use(game *g, char let)
 
   if (replace_item && used->invlet != 0)
    inv.add_item_keep_invlet(copy);
-  else if (used->invlet == 0 && used == &weapon)
+  else if (used->invlet == 0 && used == &weapon())
    remove_weapon();
   return;
 
@@ -4328,7 +4326,7 @@ void player::read(game *g, char ch)
 
 // Find the object
  int index = -1;
- if (weapon.invlet == ch)
+ if (weapon().invlet == ch)
   index = -2;
  else {
   for (int i = 0; i < inv.size(); i++) {
@@ -4347,9 +4345,9 @@ void player::read(game *g, char ch)
 // Some macguffins can be read, but they aren't treated like books.
  it_macguffin* mac = NULL;
  item *used;
- if (index == -2 && weapon.is_macguffin()) {
-  mac = dynamic_cast<it_macguffin*>(weapon.type);
-  used = &weapon;
+ if (index == -2 && weapon().is_macguffin()) {
+  mac = dynamic_cast<it_macguffin*>(weapon().type);
+  used = &weapon();
  } else if (index >= 0 && inv[index].is_macguffin()) {
   mac = dynamic_cast<it_macguffin*>(inv[index].type);
   used = &(inv[index]);
@@ -4361,15 +4359,15 @@ void player::read(game *g, char ch)
  }
 
  if ((index >=  0 && !inv[index].is_book()) ||
-            (index == -2 && !weapon.is_book())) {
+            (index == -2 && !weapon().is_book())) {
   g->add_msg("Your %s is not good reading material.",
-           (index == -2 ? weapon.tname(g).c_str() : inv[index].tname(g).c_str()));
+           (index == -2 ? weapon().tname(g).c_str() : inv[index].tname(g).c_str()));
   return;
  }
 
  it_book* tmp;
  if (index == -2)
-  tmp = dynamic_cast<it_book*>(weapon.type);
+  tmp = dynamic_cast<it_book*>(weapon().type);
  else
   tmp = dynamic_cast<it_book*>(inv[index].type);
  if (tmp->intel > 0 && has_trait(PF_ILLITERATE)) {
@@ -4771,22 +4769,37 @@ std::vector<int> player::has_ammo(ammotype at)
  return ret;
 }
 
+const item & player::weapon() const
+{
+    return inv.weapon();
+}
+
+item & player::weapon()
+{
+    return inv.weapon();
+}
+
+void player::set_weapon(const item & it)
+{
+    inv.set_weapon(it);
+}
+
 std::string player::weapname(bool charges)
 {
- if (!(weapon.is_tool() &&
-       dynamic_cast<it_tool*>(weapon.type)->max_charges <= 0) &&
-     weapon.charges >= 0 && charges) {
+ if (!(weapon().is_tool() &&
+       dynamic_cast<it_tool*>(weapon().type)->max_charges <= 0) &&
+     weapon().charges >= 0 && charges) {
   std::stringstream dump;
-  dump << weapon.tname().c_str() << " (" << weapon.charges << ")";
+  dump << weapon().tname().c_str() << " (" << weapon().charges << ")";
   return dump.str();
- } else if (weapon.is_null())
+ } else if (weapon().is_null())
   return "fists";
 
- else if (weapon.is_style()) { // Styles get bonus-bars!
+ else if (weapon().is_style()) { // Styles get bonus-bars!
   std::stringstream dump;
-  dump << weapon.tname();
+  dump << weapon().tname();
 
-  switch (weapon.type->id) {
+  switch (weapon().type->id) {
    case itm_style_capoeira:
     if (has_disease(DI_DODGE_BOOST))
      dump << " +Dodge";
@@ -4872,10 +4885,10 @@ std::string player::weapname(bool charges)
     dump << "]";
    } break;
 
-  } // switch (weapon.type->id)
+  } // switch (weapon().type->id)
   return dump.str();
  } else
-  return weapon.tname();
+  return weapon().tname();
 }
 
 nc_color encumb_color(int level)

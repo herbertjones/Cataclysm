@@ -20,7 +20,7 @@ void player::activate_bionic(int b, game *g)
 {
  bionic bio = my_bionics[b];
  int power_cost = bionics[bio.id].power_cost;
- if (weapon.type->id == itm_bio_claws && bio.id == bio_claws)
+ if (weapon().type->id == itm_bio_claws && bio.id == bio_claws)
   power_cost = 0;
  if (power_level < power_cost) {
   if (my_bionics[b].powered) {
@@ -213,40 +213,40 @@ void player::activate_bionic(int b, game *g)
   break;
 
  case bio_claws:
-  if (weapon.type->id == itm_bio_claws) {
+  if (weapon().type->id == itm_bio_claws) {
    g->add_msg("You withdraw your claws.");
-   weapon = ret_null;
-  } else if (weapon.type->id != 0) {
+   set_weapon( ret_null );
+  } else if (weapon().type->id != 0) {
    g->add_msg("Your claws extend, forcing you to drop your %s.",
-              weapon.tname().c_str());
-   g->m.add_item(posx, posy, weapon);
-   weapon = item(g->itypes[itm_bio_claws], 0);
-   weapon.invlet = '#';
+              weapon().tname().c_str());
+   g->m.add_item(posx, posy, weapon());
+   set_weapon( item(g->itypes[itm_bio_claws], 0) );
+   weapon().invlet = '#';
   } else {
    g->add_msg("Your claws extend!");
-   weapon = item(g->itypes[itm_bio_claws], 0);
-   weapon.invlet = '#';
+   set_weapon( item(g->itypes[itm_bio_claws], 0) );
+   weapon().invlet = '#';
   }
   break;
 
  case bio_blaster:
-  tmp_item = weapon;
-  weapon = item(g->itypes[itm_bio_blaster], 0);
-  weapon.curammo = dynamic_cast<it_ammo*>(g->itypes[itm_bio_fusion]);
-  weapon.charges = 1;
+  tmp_item = weapon();
+  set_weapon( item(g->itypes[itm_bio_blaster], 0) );
+  weapon().curammo = dynamic_cast<it_ammo*>(g->itypes[itm_bio_fusion]);
+  weapon().charges = 1;
   g->refresh_all();
   g->plfire(false);
-  weapon = tmp_item;
+  set_weapon( tmp_item );
   break;
 
  case bio_laser:
-  tmp_item = weapon;
-  weapon = item(g->itypes[itm_v29], 0);
-  weapon.curammo = dynamic_cast<it_ammo*>(g->itypes[itm_laser_pack]);
-  weapon.charges = 1;
+  tmp_item = weapon();
+  set_weapon( item(g->itypes[itm_v29], 0) );
+  weapon().curammo = dynamic_cast<it_ammo*>(g->itypes[itm_laser_pack]);
+  weapon().charges = 1;
   g->refresh_all();
   g->plfire(false);
-  weapon = tmp_item;
+  set_weapon( tmp_item );
   break;
 
  case bio_emp:

@@ -35,19 +35,19 @@ void print_inv_statics(game *g, WINDOW* w_inv, std::string title,
  mvwprintz(w_inv, 2, 40, c_magenta, "WEAPON:");
  int dropping_weapon = false;
  for (int i = 0; i < dropped_items.size() && !dropping_weapon; i++) {
-  if (dropped_items[i] == g->u.weapon.invlet)
+  if (dropped_items[i] == g->u.weapon().invlet)
    dropping_weapon = true;
  }
  if (g->u.is_armed()) {
   if (dropping_weapon)
-   mvwprintz(w_inv, 3, 40, c_white, "%c + %s", g->u.weapon.invlet,
+   mvwprintz(w_inv, 3, 40, c_white, "%c + %s", g->u.weapon().invlet,
              g->u.weapname().c_str());
   else
-   mvwprintz(w_inv, 3, 40, g->u.weapon.color_in_inventory(&(g->u)), "%c - %s",
-             g->u.weapon.invlet, g->u.weapname().c_str());
- } else if (g->u.weapon.is_style())
+   mvwprintz(w_inv, 3, 40, g->u.weapon().color_in_inventory(&(g->u)), "%c - %s",
+             g->u.weapon().invlet, g->u.weapname().c_str());
+ } else if (g->u.weapon().is_style())
   mvwprintz(w_inv, 3, 40, c_ltgray, "%c - %s",
-            g->u.weapon.invlet, g->u.weapname().c_str());
+            g->u.weapon().invlet, g->u.weapname().c_str());
  else
   mvwprintz(w_inv, 3, 42, c_ltgray, g->u.weapname().c_str());
 // Print worn items
@@ -252,10 +252,10 @@ std::vector<item> game::multidrop()
      }
     }
     if (!found) {
-     if (ch == u.weapon.invlet && u.weapon.type->id > num_items &&
-         u.weapon.type->id < num_all_items) {
+     if (ch == u.weapon().invlet && u.weapon().type->id > num_items &&
+         u.weapon().type->id < num_all_items) {
       if (!warned_about_bionic)
-       add_msg("You cannot drop your %s.", u.weapon.tname(this).c_str());
+       add_msg("You cannot drop your %s.", u.weapon().tname(this).c_str());
       warned_about_bionic = true;
      } else {
       weapon_and_armor.push_back(ch);

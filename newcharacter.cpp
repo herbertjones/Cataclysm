@@ -48,7 +48,7 @@ void save_template(player *u);
 
 bool player::create(game *g, character_type type, std::string tempname)
 {
- weapon = item(g->itypes[0], 0);
+ set_weapon( item(g->itypes[0], 0) );
  WINDOW* w = newwin(25, 80, 0, 0);
  int tab = 0, points = 38;
  if (type != PLTYPE_CUSTOM) {
@@ -221,9 +221,9 @@ End of cheatery */
  }
  ret_null = item(g->itypes[0], 0);
  if (!styles.empty())
-  weapon = item(g->itypes[ styles[0] ], 0, ':');
+  set_weapon( item(g->itypes[ styles[0] ], 0, ':') );
  else
-  weapon   = item(g->itypes[0], 0);
+  set_weapon( item(g->itypes[0], 0) );
 // Nice to start out less than naked.
  item tmp(g->itypes[itm_jeans], 0, 'a');
  worn.push_back(tmp);

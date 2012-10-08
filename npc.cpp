@@ -110,7 +110,6 @@ npc& npc::operator= (const npc & rhs)
  posx = rhs.posx;
  posy = rhs.posy;
 
- weapon = rhs.weapon;
  ret_null = rhs.ret_null;
  inv = rhs.inv;
  worn.clear();
@@ -204,11 +203,11 @@ std::string npc::save_info()
     dump << "C " << inv.stack_at(i)[j].contents[k].save_info() << std::endl;
   }
  }
- dump << "w " << weapon.save_info() << std::endl;
+ dump << "w " << weapon().save_info() << std::endl;
  for (int i = 0; i < worn.size(); i++)
   dump << "W " << worn[i].save_info() << std::endl;
- for (int j = 0; j < weapon.contents.size(); j++)
-  dump << "c " << weapon.contents[j].save_info() << std::endl;
+ for (int j = 0; j < weapon().contents.size(); j++)
+  dump << "c " << weapon().contents[j].save_info() << std::endl;
 
  return dump.str();
 }
@@ -310,7 +309,7 @@ void npc::randomize(game *g, npc_class type)
  int_max = dice(4, 3);
  per_max = dice(4, 3);
  ret_null = item(g->itypes[0], 0);
- weapon   = item(g->itypes[0], 0);
+ set_weapon( item(g->itypes[0], 0) );
  inv.clear();
  personality.aggression = rng(-10, 10);
  personality.bravery =    rng( -3, 10);
@@ -961,8 +960,8 @@ std::vector<item> starting_inv(npc *me, npc_class type, game *g)
  itype_id tmp;
 
 // First, if we're wielding a gun, get some ammo for it
- if (me->weapon.is_gun()) {
-  it_gun *gun = dynamic_cast<it_gun*>(me->weapon.type);
+ if (me->weapon().is_gun()) {
+  it_gun *gun = dynamic_cast<it_gun*>(me->weapon().type);
   tmp = default_ammo(gun->ammo);
   if (total_space >= g->itypes[tmp]->volume) {
    ret.push_back(item(g->itypes[tmp], 0));
@@ -1077,7 +1076,7 @@ skill npc::best_skill()
 void npc::starting_weapon(game *g)
 {
  if (!styles.empty()) {
-  weapon.make(g->itypes[styles[rng(0, styles.size() - 1)]]);
+  weapon().make(g->itypes[styles[rng(0, styles.size() - 1)]]);
   return;
  }
  skill best = best_skill();
@@ -1085,22 +1084,22 @@ void npc::starting_weapon(game *g)
  switch (best) {
  case sk_bashing:
   switch (rng(0, 5)) {
-   case 0: weapon.make(g->itypes[itm_hammer]);        break;
-   case 1: weapon.make(g->itypes[itm_wrench]);        break;
-   case 2: weapon.make(g->itypes[itm_hammer_sledge]); break;
-   case 3: weapon.make(g->itypes[itm_pipe]);          break;
-   case 4: weapon.make(g->itypes[itm_bat]);           break;
-   case 5: weapon.make(g->itypes[itm_crowbar]);       break;
+   case 0: weapon().make(g->itypes[itm_hammer]);        break;
+   case 1: weapon().make(g->itypes[itm_wrench]);        break;
+   case 2: weapon().make(g->itypes[itm_hammer_sledge]); break;
+   case 3: weapon().make(g->itypes[itm_pipe]);          break;
+   case 4: weapon().make(g->itypes[itm_bat]);           break;
+   case 5: weapon().make(g->itypes[itm_crowbar]);       break;
   }
   break;
  case sk_cutting:
   switch (rng(0, 5)) {
-   case 0: weapon.make(g->itypes[itm_knife_butcher]); break;
-   case 1: weapon.make(g->itypes[itm_hatchet]);       break;
-   case 2: weapon.make(g->itypes[itm_ax]);            break;
-   case 3: weapon.make(g->itypes[itm_machete]);       break;
-   case 4: weapon.make(g->itypes[itm_knife_combat]);  break;
-   case 5: weapon.make(g->itypes[itm_katana]);        break;
+   case 0: weapon().make(g->itypes[itm_knife_butcher]); break;
+   case 1: weapon().make(g->itypes[itm_hatchet]);       break;
+   case 2: weapon().make(g->itypes[itm_ax]);            break;
+   case 3: weapon().make(g->itypes[itm_machete]);       break;
+   case 4: weapon().make(g->itypes[itm_knife_combat]);  break;
+   case 5: weapon().make(g->itypes[itm_katana]);        break;
   }
   break;
  case sk_throw:
@@ -1108,25 +1107,25 @@ void npc::starting_weapon(game *g)
   break;
  case sk_pistol:
   index = rng(0, g->mapitems[mi_pistols].size() - 1);
-  weapon.make(g->itypes[(g->mapitems[mi_pistols])[index]]);
+  weapon().make(g->itypes[(g->mapitems[mi_pistols])[index]]);
   break;
  case sk_shotgun:
   index = rng(0, g->mapitems[mi_shotguns].size() - 1);
-  weapon.make(g->itypes[(g->mapitems[mi_shotguns])[index]]);
+  weapon().make(g->itypes[(g->mapitems[mi_shotguns])[index]]);
   break;
  case sk_smg:
   index = rng(0, g->mapitems[mi_smg].size() - 1);
-  weapon.make(g->itypes[(g->mapitems[mi_smg])[index]]);
+  weapon().make(g->itypes[(g->mapitems[mi_smg])[index]]);
   break;
  case sk_rifle:
   index = rng(0, g->mapitems[mi_rifles].size() - 1);
-  weapon.make(g->itypes[(g->mapitems[mi_rifles])[index]]);
+  weapon().make(g->itypes[(g->mapitems[mi_rifles])[index]]);
   break;
  }
- if (weapon.is_gun()) {
-  it_gun* gun = dynamic_cast<it_gun*>(weapon.type);
-  weapon.charges = gun->clip;
-  weapon.curammo = dynamic_cast<it_ammo*>(g->itypes[default_ammo(gun->ammo)]);
+ if (weapon().is_gun()) {
+  it_gun* gun = dynamic_cast<it_gun*>(weapon().type);
+  weapon().charges = gun->clip;
+  weapon().curammo = dynamic_cast<it_ammo*>(g->itypes[default_ammo(gun->ammo)]);
  }
 }
 
@@ -1177,16 +1176,16 @@ bool npc::wield(game *g, int index)
    debugmsg("npc::wield(%d) [styles.size() = %d]", index, styles.size());
    return false;
   }
-  if (volume_carried() + weapon.volume() <= volume_capacity()) {
+  if (volume_carried() + weapon().volume() <= volume_capacity()) {
    i_add(remove_weapon());
    moves -= 15; // Extra penalty for putting weapon away
   } else // No room for weapon, so we drop it
    g->m.add_item(posx, posy, remove_weapon());
   moves -= 15;
-  weapon.make( g->itypes[styles[index]] );
+  weapon().make( g->itypes[styles[index]] );
   int linet;
   if (g->u_see(posx, posy, linet))
-   g->add_msg("%s assumes a %s stance.", name.c_str(), weapon.tname().c_str());
+   g->add_msg("%s assumes a %s stance.", name.c_str(), weapon().tname().c_str());
   return true;
  }
 
@@ -1194,17 +1193,17 @@ bool npc::wield(game *g, int index)
   debugmsg("npc::wield(%d) [inv.size() = %d]", index, inv.size());
   return false;
  }
- if (volume_carried() + weapon.volume() <= volume_capacity()) {
+ if (volume_carried() + weapon().volume() <= volume_capacity()) {
   i_add(remove_weapon());
   moves -= 15;
  } else // No room for weapon, so we drop it
   g->m.add_item(posx, posy, remove_weapon());
  moves -= 15;
- weapon = inv[index];
+ set_weapon( inv[index] );
  i_remn(index);
  int linet;
  if (g->u_see(posx, posy, linet))
-  g->add_msg("%s wields a %s.", name.c_str(), weapon.tname().c_str());
+  g->add_msg("%s wields a %s.", name.c_str(), weapon().tname().c_str());
  return true;
 }
 
@@ -1237,12 +1236,12 @@ void npc::perform_mission(game *g)
 void npc::form_opinion(player *u)
 {
 // FEAR
- if (u->weapon.is_gun()) {
-  if (weapon.is_gun())
+ if (u->weapon().is_gun()) {
+  if (weapon().is_gun())
    op_of_u.fear += 2;
   else
    op_of_u.fear += 6;
- } else if (u->weapon.type->melee_dam >= 12 || u->weapon.type->melee_cut >= 12)
+ } else if (u->weapon().type->melee_dam >= 12 || u->weapon().type->melee_cut >= 12)
   op_of_u.fear += 2;
  else if (u->unarmed_attack())	// Unarmed
   op_of_u.fear -= 3;
@@ -1280,7 +1279,7 @@ void npc::form_opinion(player *u)
  else
   op_of_u.trust += 1;
 
- if (u->weapon.is_gun())
+ if (u->weapon().is_gun())
   op_of_u.trust -= 2;
  else if (u->unarmed_attack())
   op_of_u.trust += 2;
@@ -1343,14 +1342,14 @@ talk_topic npc::pick_talk_topic(player *u)
 int npc::player_danger(player *u)
 {
  int ret = 0;
- if (u->weapon.is_gun()) {
-  if (weapon.is_gun())
+ if (u->weapon().is_gun()) {
+  if (weapon().is_gun())
    ret += 4;
   else
    ret += 8;
- } else if (u->weapon.type->melee_dam >= 12 || u->weapon.type->melee_cut >= 12)
+ } else if (u->weapon().type->melee_dam >= 12 || u->weapon().type->melee_cut >= 12)
   ret++;
- else if (u->weapon.type->id == 0)	// Unarmed
+ else if (u->weapon().type->id == 0)	// Unarmed
   ret -= 3;
 
  if (u->str_cur > 20)	// Superhuman strength!
@@ -1484,16 +1483,16 @@ void npc::decide_needs()
  int needrank[num_needs];
  for (int i = 0; i < num_needs; i++)
   needrank[i] = 20;
- if (weapon.is_gun()) {
-  it_gun* gun = dynamic_cast<it_gun*>(weapon.type);
+ if (weapon().is_gun()) {
+  it_gun* gun = dynamic_cast<it_gun*>(weapon().type);
   needrank[need_ammo] = 5 * has_ammo(gun->ammo).size();
  }
- if (weapon.type->id == 0 && sklevel[sk_unarmed] < 4)
+ if (weapon().type->id == 0 && sklevel[sk_unarmed] < 4)
   needrank[need_weapon] = 1;
  else
-  needrank[need_weapon] = weapon.type->melee_dam + weapon.type->melee_cut +
-                          weapon.type->m_to_hit;
- if (!weapon.is_gun())
+  needrank[need_weapon] = weapon().type->melee_dam + weapon().type->melee_cut +
+                          weapon().type->m_to_hit;
+ if (!weapon().is_gun())
   needrank[need_gun] = sklevel[sk_unarmed] + sklevel[sk_melee] +
                        sklevel[sk_bashing] + sklevel[sk_cutting] -
                        sklevel[sk_gun] * 2 + 5;
@@ -1611,7 +1610,7 @@ int npc::value(item &it)
  int ret = it.price() / 50;
  skill best = best_skill();
  if (best != sk_unarmed) {
-  int weapon_val = it.weapon_value(sklevel) - weapon.weapon_value(sklevel);
+  int weapon_val = it.weapon_value(sklevel) - weapon().weapon_value(sklevel);
   if (weapon_val > 0)
    ret += weapon_val;
  }
@@ -1629,8 +1628,8 @@ int npc::value(item &it)
  if (it.is_ammo()) {
   it_ammo* ammo = dynamic_cast<it_ammo*>(it.type);
   it_gun* gun;
-  if (weapon.is_gun()) {
-   gun = dynamic_cast<it_gun*>(weapon.type);
+  if (weapon().is_gun()) {
+   gun = dynamic_cast<it_gun*>(weapon().type);
    if (ammo->type == gun->ammo)
     ret += 14;
   }
@@ -1755,14 +1754,14 @@ int npc::danger_assessment(game *g)
 // Mod for the player
  if (is_enemy()) {
   if (rl_dist(posx, posy, g->u.posx, g->u.posy) < 10) {
-   if (g->u.weapon.is_gun())
+   if (g->u.weapon().is_gun())
     ret += 10;
    else 
     ret += 10 - rl_dist(posx, posy, g->u.posx, g->u.posy);
   }
  } else if (is_friend()) {
   if (rl_dist(posx, posy, g->u.posx, g->u.posy) < 8) {
-   if (g->u.weapon.is_gun())
+   if (g->u.weapon().is_gun())
     ret -= 8;
    else 
     ret -= 8 - rl_dist(posx, posy, g->u.posx, g->u.posy);
@@ -1790,8 +1789,8 @@ int npc::danger_assessment(game *g)
 int npc::average_damage_dealt()
 {
  int ret = base_damage();
- ret += weapon.damage_cut() + weapon.damage_bash() / 2;
- ret *= (base_to_hit() + weapon.type->m_to_hit);
+ ret += weapon().damage_cut() + weapon().damage_bash() / 2;
+ ret *= (base_to_hit() + weapon().type->m_to_hit);
  ret /= 15;
  return ret;
 }
@@ -1903,8 +1902,8 @@ void npc::print_info(WINDOW* w)
 // because it's a border as well; so we have lines 6 through 11.
 // w is also 48 characters wide - 2 characters for border = 46 characters for us
  mvwprintz(w, 6, 1, c_white, "NPC: %s", name.c_str());
- mvwprintz(w, 7, 1, c_red, "Wielding %s%s", (weapon.type->id == 0 ? "" : "a "),
-                                     weapon.tname().c_str());
+ mvwprintz(w, 7, 1, c_red, "Wielding %s%s", (weapon().type->id == 0 ? "" : "a "),
+                                     weapon().tname().c_str());
  std::string wearing;
  std::stringstream wstr;
  wstr << "Wearing: ";
@@ -1931,7 +1930,7 @@ void npc::print_info(WINDOW* w)
 std::string npc::short_description()
 {
  std::stringstream ret;
- ret << "Wielding " << weapon.tname() << ";   " << "Wearing: ";
+ ret << "Wielding " << weapon().tname() << ";   " << "Wearing: ";
  for (int i = 0; i < worn.size(); i++) {
   if (i > 0)
    ret << ", ";
@@ -2051,8 +2050,8 @@ void npc::die(game *g, bool your_fault)
   g->m.add_item(posx, posy, inv[i]);
  for (int i = 0; i < worn.size(); i++)
   g->m.add_item(posx, posy, worn[i]);
- if (weapon.type->id != itm_null)
-  g->m.add_item(posx, posy, weapon);
+ if (weapon().type->id != itm_null)
+  g->m.add_item(posx, posy, weapon());
 
  for (int i = 0; i < g->active_missions.size(); i++) {
   if (g->active_missions[i].npc_id == id)

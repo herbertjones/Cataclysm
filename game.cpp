@@ -755,23 +755,23 @@ void game::process_activity()
    switch (u.activity.type) {
 
    case ACT_RELOAD:
-    u.weapon.reload(u, u.activity.index);
-    if (u.weapon.is_gun() && u.weapon.has_flag(IF_RELOAD_ONE)) {
+    u.weapon().reload(u, u.activity.index);
+    if (u.weapon().is_gun() && u.weapon().has_flag(IF_RELOAD_ONE)) {
      add_msg("You insert a cartridge into your %s.",
-             u.weapon.tname(this).c_str());
+             u.weapon().tname(this).c_str());
      if (u.recoil < 8)
       u.recoil = 8;
      if (u.recoil > 8)
       u.recoil = (8 + u.recoil) / 2;
     } else {
-     add_msg("You reload your %s.", u.weapon.tname(this).c_str());
+     add_msg("You reload your %s.", u.weapon().tname(this).c_str());
      u.recoil = 6;
     }
     break;
 
    case ACT_READ:
     if (u.activity.index == -2)
-     reading = dynamic_cast<it_book*>(u.weapon.type);
+     reading = dynamic_cast<it_book*>(u.weapon().type);
     else
      reading = dynamic_cast<it_book*>(u.inv[u.activity.index].type);
 
@@ -1350,9 +1350,9 @@ input_ret game::get_input(int timeout_ms)
 
   case ACTION_PICK_STYLE:
    u.pick_style(this);
-   if (u.weapon.type->id == 0 || u.weapon.is_style()) {
-    u.weapon = item(itypes[u.style_selected], 0);
-    u.weapon.invlet = ':';
+   if (u.weapon().type->id == 0 || u.weapon().is_style()) {
+    u.set_weapon( item(itypes[u.style_selected], 0) );
+    u.weapon().invlet = ':';
    }
    refresh_all();
    break;
@@ -1692,9 +1692,9 @@ bool game::load_master()
     } else if (item_place == 'W')
      tmp.worn.push_back(item(itemdata, this));
     else if (item_place == 'w')
-     tmp.weapon = item(itemdata, this);
+     tmp.set_weapon( item(itemdata, this) );
     else if (item_place == 'c') {
-     tmp.weapon.contents.push_back(item(itemdata, this));
+     tmp.weapon().contents.push_back(item(itemdata, this));
      j--;
     }
    }
@@ -1724,7 +1724,7 @@ void game::load(std::string name)
  u = player();
  u.name = name;
  u.ret_null = item(itypes[0], 0);
- u.weapon = item(itypes[0], 0);
+ u.set_weapon( item(itypes[0], 0) );
  int tmpturn, tmpspawn, tmpnextweather, tmprun, tmptar, tmpweather, tmptemp,
      comx, comy;
  fin >> tmpturn >> tmptar >> tmprun >> mostseen >> nextinv >> next_npc_id >>
@@ -1792,9 +1792,9 @@ void game::load(std::string name)
    else if (item_place == 'W')
     u.worn.push_back(item(itemdata, this));
    else if (item_place == 'w')
-    u.weapon = item(itemdata, this);
+    u.set_weapon( item(itemdata, this) );
    else if (item_place == 'c')
-    u.weapon.contents.push_back(item(itemdata, this));
+    u.weapon().contents.push_back(item(itemdata, this));
   }
  }
 // Now dump tmpinv into the player's inventory
@@ -2902,7 +2902,7 @@ point game::find_item(item *it)
 void game::remove_item(item *it)
 {
  point ret;
- if (it == &u.weapon) {
+ if (it == &u.weapon()) {
   u.remove_weapon();
   return;
  }
@@ -2928,7 +2928,7 @@ void game::remove_item(item *it)
   }
  }
  for (int i = 0; i < active_npc.size(); i++) {
-  if (it == &active_npc[i].weapon) {
+  if (it == &active_npc[i].weapon()) {
    active_npc[i].remove_weapon();
    return;
   }
@@ -4067,7 +4067,7 @@ void game::smash()
 {
  bool didit = false;
  std::string bashsound, extra;
- int smashskill = int(u.str_cur / 2.5 + u.weapon.type->melee_dam);
+ int smashskill = int(u.str_cur / 2.5 + u.weapon().type->melee_dam);
  mvwprintw(w_terrain, 0, 0, "Smash what? (hjklyubn) ");
  wrefresh(w_terrain);
  char ch = input();
@@ -4095,15 +4095,15 @@ void game::smash()
   u.moves -= 80;
   if (u.sklevel[sk_melee] == 0)
    u.practice(sk_melee, rng(0, 1) * rng(0, 1));
-  if (u.weapon.made_of(GLASS) &&
-      rng(0, u.weapon.volume() + 3) < u.weapon.volume()) {
-   add_msg("Your %s shatters!", u.weapon.tname(this).c_str());
-   for (int i = 0; i < u.weapon.contents.size(); i++)
-    m.add_item(u.posx, u.posy, u.weapon.contents[i]);
+  if (u.weapon().made_of(GLASS) &&
+      rng(0, u.weapon().volume() + 3) < u.weapon().volume()) {
+   add_msg("Your %s shatters!", u.weapon().tname(this).c_str());
+   for (int i = 0; i < u.weapon().contents.size(); i++)
+    m.add_item(u.posx, u.posy, u.weapon().contents[i]);
    sound(u.posx, u.posy, 16, "");
-   u.hit(this, bp_hands, 1, 0, rng(0, u.weapon.volume()));
-   if (u.weapon.volume() > 20)// Hurt left arm too, if it was big
-    u.hit(this, bp_hands, 0, 0, rng(0, u.weapon.volume() * .5));
+   u.hit(this, bp_hands, 1, 0, rng(0, u.weapon().volume()));
+   if (u.weapon().volume() > 20)// Hurt left arm too, if it was big
+    u.hit(this, bp_hands, 0, 0, rng(0, u.weapon().volume() * .5));
    u.remove_weapon();
   }
  } else
@@ -4181,19 +4181,19 @@ bool game::pl_refill_vehicle (vehicle &veh, int part, bool test)
 
     int ftype = veh.part_info(part).fuel_type;
     itype_id itid = default_ammo((ammotype)ftype);
-    if (u.weapon.is_container() && u.weapon.contents.size() > 0 && u.weapon.contents[0].type->id == itid)
+    if (u.weapon().is_container() && u.weapon().contents.size() > 0 && u.weapon().contents[0].type->id == itid)
     {
         i_itm = -2;
-        p_itm = &u.weapon.contents[0];
-        min_charges = u.weapon.contents[0].charges;
+        p_itm = &u.weapon().contents[0];
+        min_charges = u.weapon().contents[0].charges;
         i_cont = true;
     }
     else
-    if (u.weapon.type->id == itid)
+    if (u.weapon().type->id == itid)
     {
         i_itm = -2;
-        p_itm = &u.weapon;
-        min_charges = u.weapon.charges;
+        p_itm = &u.weapon();
+        min_charges = u.weapon().charges;
     }
     else
     for (int i = 0; i < u.inv.size(); i++)
@@ -4252,7 +4252,7 @@ bool game::pl_refill_vehicle (vehicle &veh, int part, bool test)
         if (i_itm == -2)
         {
             if (i_cont)
-                u.weapon.contents.erase (u.weapon.contents.begin());
+                u.weapon().contents.erase (u.weapon().contents.begin());
             else
                 u.remove_weapon ();
         }
@@ -4723,7 +4723,7 @@ void game::pickup(int posx, int posy, int min)
 {
  item_exchanges_since_save += 1; // Keeping this simple.
  write_msg();
- if (u.weapon.type->id == itm_bio_claws) {
+ if (u.weapon().type->id == itm_bio_claws) {
   add_msg("You cannot pick up items with your claws out!");
   return;
  }
@@ -4779,7 +4779,7 @@ void game::pickup(int posx, int posy, int min)
    decrease_nextinv();
   } else if (u.volume_carried() + newit.volume() > u.volume_capacity()) {
    if (u.is_armed()) {
-    if (!u.weapon.has_flag(IF_NO_UNWIELD)) {
+    if (!u.weapon().has_flag(IF_NO_UNWIELD)) {
      if (newit.is_armor() && // Armor can be instantly worn
          query_yn("Put on the %s?", newit.tname(this).c_str())) {
       if(u.wear_item(this, &newit)){
@@ -4789,7 +4789,7 @@ void game::pickup(int posx, int posy, int min)
         m.i_clear(posx, posy);
       }
      } else if (query_yn("Drop your %s and pick up %s?",
-                u.weapon.tname(this).c_str(), newit.tname(this).c_str())) {
+                u.weapon().tname(this).c_str(), newit.tname(this).c_str())) {
       if (from_veh)
        veh->remove_item (veh_part, 0);
       else
@@ -4803,7 +4803,7 @@ void game::pickup(int posx, int posy, int min)
       decrease_nextinv();
     } else {
      add_msg("There's no room in your inventory for the %s, and you can't\
- unwield your %s.", newit.tname(this).c_str(), u.weapon.tname(this).c_str());
+ unwield your %s.", newit.tname(this).c_str(), u.weapon().tname(this).c_str());
      decrease_nextinv();
     }
    } else {
@@ -4819,7 +4819,7 @@ void game::pickup(int posx, int posy, int min)
   } else if (!u.is_armed() &&
              (u.volume_carried() + newit.volume() > u.volume_capacity() - 2 ||
               newit.is_weap() || newit.is_gun())) {
-   u.weapon = newit;
+   u.set_weapon( newit );
    if (from_veh)
     veh->remove_item (veh_part, 0);
    else
@@ -4981,7 +4981,7 @@ void game::pickup(int posx, int posy, int min)
     decrease_nextinv();
    } else if (u.volume_carried() + here[i].volume() > u.volume_capacity()) {
     if (u.is_armed()) {
-     if (!u.weapon.has_flag(IF_NO_UNWIELD)) {
+     if (!u.weapon().has_flag(IF_NO_UNWIELD)) {
       if (here[i].is_armor() && // Armor can be instantly worn
           query_yn("Put on the %s?", here[i].tname(this).c_str())) {
        if(u.wear_item(this, &(here[i])))
@@ -4993,7 +4993,7 @@ void game::pickup(int posx, int posy, int min)
         curmit--;
        }
       } else if (query_yn("Drop your %s and pick up %s?",
-                u.weapon.tname(this).c_str(), here[i].tname(this).c_str())) {
+                u.weapon().tname(this).c_str(), here[i].tname(this).c_str())) {
        if (from_veh)
         veh->remove_item (veh_part, curmit);
        else
@@ -5003,12 +5003,12 @@ void game::pickup(int posx, int posy, int min)
        u.wield(this, u.inv.size() - 1);
        curmit--;
        u.moves -= 100;
-       add_msg("Wielding %c - %s", u.weapon.invlet, u.weapon.tname(this).c_str());
+       add_msg("Wielding %c - %s", u.weapon().invlet, u.weapon().tname(this).c_str());
       } else
        decrease_nextinv();
      } else {
       add_msg("There's no room in your inventory for the %s, and you can't\
-  unwield your %s.", here[i].tname(this).c_str(), u.weapon.tname(this).c_str());
+  unwield your %s.", here[i].tname(this).c_str(), u.weapon().tname(this).c_str());
       decrease_nextinv();
      }
     } else {
@@ -5024,7 +5024,7 @@ void game::pickup(int posx, int posy, int min)
    } else if (!u.is_armed() &&
             (u.volume_carried() + here[i].volume() > u.volume_capacity() - 2 ||
               here[i].is_weap() || here[i].is_gun())) {
-    u.weapon = here[i];
+    u.set_weapon( here[i] );
     if (from_veh)
      veh->remove_item (veh_part, curmit);
     else
@@ -5444,54 +5444,54 @@ void game::plthrow()
 void game::plfire(bool burst)
 {
  int reload_index = -1;
- if (!u.weapon.is_gun())
+ if (!u.weapon().is_gun())
   return;
  vehicle *veh = m.veh_at(u.posx, u.posy);
- if (veh && veh->player_in_control(&u) && u.weapon.is_two_handed(&u)) {
+ if (veh && veh->player_in_control(&u) && u.weapon().is_two_handed(&u)) {
   add_msg ("You need free arm to drive!");
   return;
  }
- if (u.weapon.has_flag(IF_CHARGE) && !u.weapon.active) {
+ if (u.weapon().has_flag(IF_CHARGE) && !u.weapon().active) {
   if (u.has_charges(itm_UPS_on, 1) || u.has_charges(itm_UPS_off, 1)) {
-   add_msg("Your %s starts charging.", u.weapon.tname().c_str());
-   u.weapon.charges = 0;
-   u.weapon.curammo = dynamic_cast<it_ammo*>(itypes[itm_charge_shot]);
-   u.weapon.active = true;
+   add_msg("Your %s starts charging.", u.weapon().tname().c_str());
+   u.weapon().charges = 0;
+   u.weapon().curammo = dynamic_cast<it_ammo*>(itypes[itm_charge_shot]);
+   u.weapon().active = true;
    return;
   } else {
    add_msg("You need a charged UPS.");
    return;
   }
  }
- if (u.weapon.has_flag(IF_RELOAD_AND_SHOOT)) {
-  reload_index = u.weapon.pick_reload_ammo(u, true);
+ if (u.weapon().has_flag(IF_RELOAD_AND_SHOOT)) {
+  reload_index = u.weapon().pick_reload_ammo(u, true);
   if (reload_index == -1) {
    add_msg("Out of ammo!");
    return;
   }
  }
- if (u.weapon.has_flag(IF_RELOAD_AND_SHOOT)) {
-  u.weapon.reload(u, reload_index);
-  u.moves -= u.weapon.reload_time(u);
+ if (u.weapon().has_flag(IF_RELOAD_AND_SHOOT)) {
+  u.weapon().reload(u, reload_index);
+  u.moves -= u.weapon().reload_time(u);
   refresh_all();
  }
 
- if (u.weapon.charges == 0 && !u.weapon.has_flag(IF_RELOAD_AND_SHOOT)) {
+ if (u.weapon().charges == 0 && !u.weapon().has_flag(IF_RELOAD_AND_SHOOT)) {
   add_msg("You need to reload!");
   return;
  }
- if (u.weapon.has_flag(IF_FIRE_100) && u.weapon.charges < 100) {
-  add_msg("Your %s needs 100 charges to fire!", u.weapon.tname().c_str());
+ if (u.weapon().has_flag(IF_FIRE_100) && u.weapon().charges < 100) {
+  add_msg("Your %s needs 100 charges to fire!", u.weapon().tname().c_str());
   return;
  }
- if (u.weapon.has_flag(IF_USE_UPS) && !u.has_charges(itm_UPS_off, 5) &&
+ if (u.weapon().has_flag(IF_USE_UPS) && !u.has_charges(itm_UPS_off, 5) &&
      !u.has_charges(itm_UPS_on, 5)) {
   add_msg("You need a UPS with at least 5 charges to fire that!");
   return;
  }
 
  int junk;
- int range = u.weapon.range(&u);
+ int range = u.weapon().range(&u);
  int sight_range = u.sight_range(light_level());
  if (range > sight_range)
   range = sight_range;
@@ -5528,7 +5528,7 @@ void game::plfire(bool burst)
 
  // target() sets x and y, and returns an empty vector if we canceled (Esc)
  std::vector <point> trajectory = target(x, y, x0, y0, x1, y1, mon_targets,
-                                         passtarget, &u.weapon);
+                                         passtarget, &u.weapon());
  draw_ter(); // Recenter our view
  if (trajectory.size() == 0)
   return;
@@ -5537,7 +5537,7 @@ void game::plfire(bool burst)
   z[targetindices[passtarget]].add_effect(ME_HIT_BY_PLAYER, 100);
  }
 
- if (u.weapon.has_flag(IF_USE_UPS)) {
+ if (u.weapon().has_flag(IF_USE_UPS)) {
   if (u.has_charges(itm_UPS_off, 5))
    u.use_charges(itm_UPS_off, 5);
   else if (u.has_charges(itm_UPS_on, 5))
@@ -5545,12 +5545,12 @@ void game::plfire(bool burst)
  }
 
 // Train up our skill
- it_gun* firing = dynamic_cast<it_gun*>(u.weapon.type);
+ it_gun* firing = dynamic_cast<it_gun*>(u.weapon().type);
  int num_shots = 1;
  if (burst)
-  num_shots = u.weapon.burst_size();
- if (num_shots > u.weapon.charges)
-  num_shots = u.weapon.charges;
+  num_shots = u.weapon().burst_size();
+ if (num_shots > u.weapon().charges)
+  num_shots = u.weapon().charges;
  if (u.sklevel[firing->skill_used] == 0 ||
      (firing->ammo != AT_BB && firing->ammo != AT_NAIL))
   u.practice(firing->skill_used, 4 + (num_shots / 2));
@@ -5718,68 +5718,68 @@ void game::takeoff()
 
 void game::reload()
 {
- if (u.weapon.is_gun()) {
-  if (u.weapon.has_flag(IF_RELOAD_AND_SHOOT)) {
+ if (u.weapon().is_gun()) {
+  if (u.weapon().has_flag(IF_RELOAD_AND_SHOOT)) {
    add_msg("Your %s does not need to be reloaded; it reloads and fires in a \
-single action.", u.weapon.tname().c_str());
+single action.", u.weapon().tname().c_str());
    return;
   }
-  if (u.weapon.ammo_type() == AT_NULL) {
-   add_msg("Your %s does not reload normally.", u.weapon.tname().c_str());
+  if (u.weapon().ammo_type() == AT_NULL) {
+   add_msg("Your %s does not reload normally.", u.weapon().tname().c_str());
    return;
   }
-  if (u.weapon.charges == u.weapon.clip_size()) {
-   add_msg("Your %s is fully loaded!", u.weapon.tname(this).c_str());
+  if (u.weapon().charges == u.weapon().clip_size()) {
+   add_msg("Your %s is fully loaded!", u.weapon().tname(this).c_str());
    return;
   }
-  int index = u.weapon.pick_reload_ammo(u, true);
+  int index = u.weapon().pick_reload_ammo(u, true);
   if (index == -1) {
    add_msg("Out of ammo!");
    return;
   }
-  u.assign_activity(ACT_RELOAD, u.weapon.reload_time(u), index);
+  u.assign_activity(ACT_RELOAD, u.weapon().reload_time(u), index);
   u.moves = 0;
- } else if (u.weapon.is_tool()) {
-  it_tool* tool = dynamic_cast<it_tool*>(u.weapon.type);
+ } else if (u.weapon().is_tool()) {
+  it_tool* tool = dynamic_cast<it_tool*>(u.weapon().type);
   if (tool->ammo == AT_NULL) {
-   add_msg("You can't reload a %s!", u.weapon.tname(this).c_str());
+   add_msg("You can't reload a %s!", u.weapon().tname(this).c_str());
    return;
   }
-  int index = u.weapon.pick_reload_ammo(u, true);
+  int index = u.weapon().pick_reload_ammo(u, true);
   if (index == -1) {
 // Reload failed
    add_msg("Out of %s!", ammo_name(tool->ammo).c_str());
    return;
   }
-  u.assign_activity(ACT_RELOAD, u.weapon.reload_time(u), index);
+  u.assign_activity(ACT_RELOAD, u.weapon().reload_time(u), index);
   u.moves = 0;
  } else if (!u.is_armed())
   add_msg("You're not wielding anything.");
  else
-  add_msg("You can't reload a %s!", u.weapon.tname(this).c_str());
+  add_msg("You can't reload a %s!", u.weapon().tname(this).c_str());
  refresh_all();
 }
 
 void game::unload()
 {
- if (!u.weapon.is_gun() && u.weapon.contents.size() == 0 &&
-     (!u.weapon.is_tool() || u.weapon.ammo_type() == AT_NULL)) {
-  add_msg("You can't unload a %s!", u.weapon.tname(this).c_str());
+ if (!u.weapon().is_gun() && u.weapon().contents.size() == 0 &&
+     (!u.weapon().is_tool() || u.weapon().ammo_type() == AT_NULL)) {
+  add_msg("You can't unload a %s!", u.weapon().tname(this).c_str());
   return;
- } else if (u.weapon.is_container() || u.weapon.charges == 0) {
-  if (u.weapon.contents.size() == 0) {
-   if (u.weapon.is_gun())
+ } else if (u.weapon().is_container() || u.weapon().charges == 0) {
+  if (u.weapon().contents.size() == 0) {
+   if (u.weapon().is_gun())
     add_msg("Your %s isn't loaded, and is not modified.",
-            u.weapon.tname(this).c_str());
+            u.weapon().tname(this).c_str());
    else
-    add_msg("Your %s isn't charged." , u.weapon.tname(this).c_str());
+    add_msg("Your %s isn't charged." , u.weapon().tname(this).c_str());
    return;
   }
 // Unloading a container!
-  u.moves -= 40 * u.weapon.contents.size();
+  u.moves -= 40 * u.weapon().contents.size();
   std::vector<item> new_contents;	// In case we put stuff back
-  while (u.weapon.contents.size() > 0) {
-   item content = u.weapon.contents[0];
+  while (u.weapon().contents.size() > 0) {
+   item content = u.weapon().contents[0];
    int iter = 0;
 // Pick an inventory item for the contents
    while ((content.invlet == 0 || u.has_item(content.invlet)) && iter < 52) {
@@ -5801,36 +5801,36 @@ void game::unload()
      m.add_item(u.posx, u.posy, content);
     }
    }
-   u.weapon.contents.erase(u.weapon.contents.begin());
+   u.weapon().contents.erase(u.weapon().contents.begin());
   }
-  u.weapon.contents = new_contents;
+  u.weapon().contents = new_contents;
   return;
  }
 // Unloading a gun or tool!
- u.moves -= int(u.weapon.reload_time(u) / 2);
+ u.moves -= int(u.weapon().reload_time(u) / 2);
  it_ammo* tmpammo;
- if (u.weapon.is_gun()) {	// Gun ammo is combined with existing items
-  for (int i = 0; i < u.inv.size() && u.weapon.charges > 0; i++) {
+ if (u.weapon().is_gun()) {	// Gun ammo is combined with existing items
+  for (int i = 0; i < u.inv.size() && u.weapon().charges > 0; i++) {
    if (u.inv[i].is_ammo()) {
     tmpammo = dynamic_cast<it_ammo*>(u.inv[i].type);
-    if (tmpammo->id == u.weapon.curammo->id &&
+    if (tmpammo->id == u.weapon().curammo->id &&
         u.inv[i].charges < tmpammo->count) {
-     u.weapon.charges -= (tmpammo->count - u.inv[i].charges);
+     u.weapon().charges -= (tmpammo->count - u.inv[i].charges);
      u.inv[i].charges = tmpammo->count;
-     if (u.weapon.charges < 0) {
-      u.inv[i].charges += u.weapon.charges;
-      u.weapon.charges = 0;
+     if (u.weapon().charges < 0) {
+      u.inv[i].charges += u.weapon().charges;
+      u.weapon().charges = 0;
      }
     }
    }
   }
  }
  item newam;
- if (u.weapon.is_gun() && u.weapon.curammo != NULL)
-  newam = item(u.weapon.curammo, turn);
+ if (u.weapon().is_gun() && u.weapon().curammo != NULL)
+  newam = item(u.weapon().curammo, turn);
  else
-  newam = item(itypes[default_ammo(u.weapon.ammo_type())], turn);
- while (u.weapon.charges > 0) {
+  newam = item(itypes[default_ammo(u.weapon().ammo_type())], turn);
+ while (u.weapon().charges > 0) {
   int iter = 0;
   while ((newam.invlet == 0 || u.has_item(newam.invlet)) && iter < 52) {
    newam.invlet = nextinv;
@@ -5838,30 +5838,30 @@ void game::unload()
    iter++;
   }
   if (newam.made_of(LIQUID))
-   newam.charges = u.weapon.charges;
-  u.weapon.charges -= newam.charges;
-  if (u.weapon.charges < 0) {
-   newam.charges += u.weapon.charges;
-   u.weapon.charges = 0;
+   newam.charges = u.weapon().charges;
+  u.weapon().charges -= newam.charges;
+  if (u.weapon().charges < 0) {
+   newam.charges += u.weapon().charges;
+   u.weapon().charges = 0;
   }
   if (u.weight_carried() + newam.weight() < u.weight_capacity() &&
       u.volume_carried() + newam.volume() < u.volume_capacity() && iter < 52) {
    if (newam.made_of(LIQUID)) {
     if (!handle_liquid(newam, false, false))
-     u.weapon.charges += newam.charges;	// Put it back in
+     u.weapon().charges += newam.charges;	// Put it back in
    } else
     u.i_add(newam, this);
   } else
    m.add_item(u.posx, u.posy, newam);
  }
- u.weapon.curammo = NULL;
+ u.weapon().curammo = NULL;
 }
 
 void game::wield()
 {
- if (u.weapon.has_flag(IF_NO_UNWIELD)) {
+ if (u.weapon().has_flag(IF_NO_UNWIELD)) {
 // Bionics can't be unwielded
-  add_msg("You cannot unwield your %s.", u.weapon.tname(this).c_str());
+  add_msg("You cannot unwield your %s.", u.weapon().tname(this).c_str());
   return;
  }
  char ch;
@@ -6168,7 +6168,7 @@ void game::plmove(int x, int y)
   }
 
 // Some martial art styles have special effects that trigger when we move
-  switch (u.weapon.type->id) {
+  switch (u.weapon().type->id) {
 
    case itm_style_capoeira:
     if (u.disease_level(DI_ATTACK_BOOST) < 2)

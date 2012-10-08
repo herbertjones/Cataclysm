@@ -58,17 +58,6 @@ int inventory::num_items() const
  return ret;
 }
 
-inventory& inventory::operator= (inventory &rhs)
-{
- if (this == &rhs)
-  return *this; // No self-assignment
-
- clear();
- for (int i = 0; i < rhs.size(); i++)
-  items.push_back(rhs.stack_at(i));
- return *this;
-}
-
 inventory& inventory::operator= (const inventory &rhs)
 {
  if (this == &rhs)
@@ -77,6 +66,7 @@ inventory& inventory::operator= (const inventory &rhs)
  clear();
  for (int i = 0; i < rhs.size(); i++)
   items.push_back(rhs.const_stack(i));
+ weapon_ = rhs.weapon_;
  return *this;
 }
 
@@ -447,6 +437,21 @@ bool inventory::has_item(item *it)
   }
  }
  return false;
+}
+
+item& inventory::weapon()
+{
+    return weapon_;
+}
+
+const item& inventory::weapon() const
+{
+    return weapon_;
+}
+
+void inventory::set_weapon(const item & w)
+{
+    weapon_ = w;
 }
 
 void inventory::assign_empty_invlet(item &it, player *p)

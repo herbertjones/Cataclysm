@@ -26,58 +26,58 @@ void game::fire(player &p, int tarx, int tary, std::vector<point> &trajectory,
                 bool burst)
 {
  item ammotmp;
- if (p.weapon.has_flag(IF_CHARGE)) { // It's a charger gun, so make up a type
+ if (p.weapon().has_flag(IF_CHARGE)) { // It's a charger gun, so make up a type
 // Charges maxes out at 8.
   it_ammo *tmpammo = dynamic_cast<it_ammo*>(itypes[itm_charge_shot]);
-  tmpammo->damage = p.weapon.charges * p.weapon.charges;
-  tmpammo->pierce = (p.weapon.charges >= 4 ? (p.weapon.charges - 3) * 2.5 : 0);
-  tmpammo->range = 5 + p.weapon.charges * 5;
-  if (p.weapon.charges <= 4)
-   tmpammo->accuracy = 14 - p.weapon.charges * 2;
+  tmpammo->damage = p.weapon().charges * p.weapon().charges;
+  tmpammo->pierce = (p.weapon().charges >= 4 ? (p.weapon().charges - 3) * 2.5 : 0);
+  tmpammo->range = 5 + p.weapon().charges * 5;
+  if (p.weapon().charges <= 4)
+   tmpammo->accuracy = 14 - p.weapon().charges * 2;
   else // 5, 12, 21, 32
-   tmpammo->accuracy = p.weapon.charges * (p.weapon.charges - 4);
+   tmpammo->accuracy = p.weapon().charges * (p.weapon().charges - 4);
   tmpammo->recoil = tmpammo->accuracy * .8;
   tmpammo->item_flags = 0;
-  if (p.weapon.charges == 8)
+  if (p.weapon().charges == 8)
    tmpammo->item_flags |= mfb(IF_AMMO_EXPLOSIVE_BIG);
-  else if (p.weapon.charges >= 6)
+  else if (p.weapon().charges >= 6)
    tmpammo->item_flags |= mfb(IF_AMMO_EXPLOSIVE);
-  if (p.weapon.charges >= 5)
+  if (p.weapon().charges >= 5)
    tmpammo->item_flags |= mfb(IF_AMMO_FLAME);
-  else if (p.weapon.charges >= 4)
+  else if (p.weapon().charges >= 4)
    tmpammo->item_flags |= mfb(IF_AMMO_INCENDIARY);
 
   ammotmp = item(tmpammo, 0);
-  p.weapon.curammo = tmpammo;
-  p.weapon.active = false;
-  p.weapon.charges = 0;
+  p.weapon().curammo = tmpammo;
+  p.weapon().active = false;
+  p.weapon().charges = 0;
 
  } else // Just a normal gun. If we're here, we know curammo is valid.
-  ammotmp = item(p.weapon.curammo, 0);
+  ammotmp = item(p.weapon().curammo, 0);
 
  ammotmp.charges = 1;
- if (!p.weapon.is_gun()) {
+ if (!p.weapon().is_gun()) {
   debugmsg("%s tried to fire a non-gun (%s).", p.name.c_str(),
-                                               p.weapon.tname().c_str());
+                                               p.weapon().tname().c_str());
   return;
  }
  bool is_bolt = false;
- unsigned int flags = p.weapon.curammo->item_flags;
+ unsigned int flags = p.weapon().curammo->item_flags;
 // Bolts and arrows are silent
- if (p.weapon.curammo->type == AT_BOLT || p.weapon.curammo->type == AT_ARROW)
+ if (p.weapon().curammo->type == AT_BOLT || p.weapon().curammo->type == AT_ARROW)
   is_bolt = true;
 // TODO: Move this check to game::plfire
- if ((p.weapon.has_flag(IF_STR8_DRAW)  && p.str_cur <  4) ||
-     (p.weapon.has_flag(IF_STR10_DRAW) && p.str_cur <  5)   ) {
+ if ((p.weapon().has_flag(IF_STR8_DRAW)  && p.str_cur <  4) ||
+     (p.weapon().has_flag(IF_STR10_DRAW) && p.str_cur <  5)   ) {
   add_msg("You're not strong enough to draw the bow!");
   return;
  }
 
  int x = p.posx, y = p.posy;
- it_gun* firing = dynamic_cast<it_gun*>(p.weapon.type);
+ it_gun* firing = dynamic_cast<it_gun*>(p.weapon().type);
  if (p.has_trait(PF_TRIGGERHAPPY) && one_in(30))
   burst = true;
- if (burst && p.weapon.burst_size() < 2)
+ if (burst && p.weapon().burst_size() < 2)
   burst = false; // Can't burst fire a semi-auto
 
  int junk = 0;
@@ -87,9 +87,9 @@ void game::fire(player &p, int tarx, int tary, std::vector<point> &trajectory,
 // Decide how many shots to fire
  int num_shots = 1;
  if (burst)
-  num_shots = p.weapon.burst_size();
- if (num_shots > p.weapon.charges && !p.weapon.has_flag(IF_CHARGE))
-  num_shots = p.weapon.charges;
+  num_shots = p.weapon().burst_size();
+ if (num_shots > p.weapon().charges && !p.weapon().has_flag(IF_CHARGE))
+  num_shots = p.weapon().charges;
 
  if (num_shots == 0)
   debugmsg("game::fire() - num_shots = 0!");
@@ -144,10 +144,10 @@ void game::fire(player &p, int tarx, int tary, std::vector<point> &trajectory,
     return; // No targets, so return
   }
 // Use up a round (or 100)
-  if (p.weapon.has_flag(IF_FIRE_100))
-   p.weapon.charges -= 100;
+  if (p.weapon().has_flag(IF_FIRE_100))
+   p.weapon().charges -= 100;
   else
-   p.weapon.charges--;
+   p.weapon().charges--;
 
   int trange = calculate_range(p, tarx, tary);
   double missed_by = calculate_missed_by(p, trange);
@@ -194,7 +194,7 @@ void game::fire(player &p, int tarx, int tary, std::vector<point> &trajectory,
    }
   }
 
-  int dam = p.weapon.gun_damage();
+  int dam = p.weapon().gun_damage();
   for (int i = 0; i < trajectory.size() &&
        (dam > 0 || (flags & IF_AMMO_FLAME)); i++) {
    if (i > 0)
@@ -215,11 +215,11 @@ void game::fire(player &p, int tarx, int tary, std::vector<point> &trajectory,
    if (dam <= 0) { // Ran out of momentum.
     ammo_effects(this, trajectory[i].x, trajectory[i].y, flags);
     if (is_bolt &&
-        ((p.weapon.curammo->m1 == WOOD && !one_in(4)) ||
-         (p.weapon.curammo->m1 != WOOD && !one_in(15))))
+        ((p.weapon().curammo->m1 == WOOD && !one_in(4)) ||
+         (p.weapon().curammo->m1 != WOOD && !one_in(15))))
      m.add_item(trajectory[i].x, trajectory[i].y, ammotmp);
-    if (p.weapon.charges == 0)
-     p.weapon.curammo = NULL;
+    if (p.weapon().charges == 0)
+     p.weapon().curammo = NULL;
     return;
    }
 
@@ -275,13 +275,13 @@ void game::fire(player &p, int tarx, int tary, std::vector<point> &trajectory,
    lasty = trajectory[trajectory.size() - 2].y;
   }
   if (is_bolt &&
-      ((p.weapon.curammo->m1 == WOOD && !one_in(5)) ||
-       (p.weapon.curammo->m1 != WOOD && !one_in(15))  ))
+      ((p.weapon().curammo->m1 == WOOD && !one_in(5)) ||
+       (p.weapon().curammo->m1 != WOOD && !one_in(15))  ))
     m.add_item(lastx, lasty, ammotmp);
  }
 
- if (p.weapon.charges == 0)
-  p.weapon.curammo = NULL;
+ if (p.weapon().charges == 0)
+  p.weapon().curammo = NULL;
 }
 
 
@@ -472,10 +472,10 @@ std::vector<point> game::target(int &x, int &y, int lowx, int lowy, int hix,
  if (!relevent) // currently targetting vehicle to refill with fuel
   mvwprintz(w_target, 1, 1, c_red, "Select a vehicle");
  else
- if (relevent == &u.weapon && relevent->is_gun())
+ if (relevent == &u.weapon() && relevent->is_gun())
   mvwprintz(w_target, 1, 1, c_red, "Firing %s (%d)", // - %s (%d)",
-            u.weapon.tname().c_str(),// u.weapon.curammo->name.c_str(),
-            u.weapon.charges);
+            u.weapon().tname().c_str(),// u.weapon().curammo->name.c_str(),
+            u.weapon().charges);
  else
   mvwprintz(w_target, 1, 1, c_red, "Throwing %s", relevent->tname().c_str());
  mvwprintz(w_target, 2, 1, c_white,
@@ -694,7 +694,7 @@ int time_to_fire(player &p, it_gun* firing)
 void make_gun_sound_effect(game *g, player &p, bool burst)
 {
  std::string gunsound;
- int noise = p.weapon.noise();
+ int noise = p.weapon().noise();
  if (noise < 5) {
   if (burst)
    gunsound = "Brrrip!";
@@ -716,22 +716,22 @@ void make_gun_sound_effect(game *g, player &p, bool burst)
   else
    gunsound = "kerblam!";
  }
- if (p.weapon.curammo->type == AT_FUSION || p.weapon.curammo->type == AT_BATT ||
-     p.weapon.curammo->type == AT_PLUT)
+ if (p.weapon().curammo->type == AT_FUSION || p.weapon().curammo->type == AT_BATT ||
+     p.weapon().curammo->type == AT_PLUT)
   g->sound(p.posx, p.posy, 8, "Fzzt!");
- else if (p.weapon.curammo->type == AT_40MM)
+ else if (p.weapon().curammo->type == AT_40MM)
   g->sound(p.posx, p.posy, 8, "Thunk!");
- else if (p.weapon.curammo->type == AT_GAS)
+ else if (p.weapon().curammo->type == AT_GAS)
   g->sound(p.posx, p.posy, 4, "Fwoosh!");
- else if (p.weapon.curammo->type != AT_BOLT &&
-          p.weapon.curammo->type != AT_ARROW)
+ else if (p.weapon().curammo->type != AT_BOLT &&
+          p.weapon().curammo->type != AT_ARROW)
   g->sound(p.posx, p.posy, noise, gunsound);
 }
 
 int calculate_range(player &p, int tarx, int tary)
 {
  int trange = rl_dist(p.posx, p.posy, tarx, tary);
- it_gun* firing = dynamic_cast<it_gun*>(p.weapon.type);
+ it_gun* firing = dynamic_cast<it_gun*>(p.weapon().type);
  if (trange < int(firing->volume / 3) && firing->ammo != AT_SHOT)
   trange = int(firing->volume / 3);
  else if (p.has_bionic(bio_targeting)) {
@@ -749,7 +749,7 @@ int calculate_range(player &p, int tarx, int tary)
 
 double calculate_missed_by(player &p, int trange)
 {
- it_gun* firing = dynamic_cast<it_gun*>(p.weapon.type);
+ it_gun* firing = dynamic_cast<it_gun*>(p.weapon().type);
 // Calculate deviation from intended target (assuming we shoot for the head)
   double deviation = 0.; // Measured in quarter-degrees
 // Up to 1.5 degrees for each skill point < 4; up to 1.25 for each point > 4
@@ -768,8 +768,8 @@ double calculate_missed_by(player &p, int trange)
 
   deviation += rng(0, 2 * p.encumb(bp_arms)) + rng(0, 4 * p.encumb(bp_eyes));
 
-  deviation += rng(0, p.weapon.curammo->accuracy);
-  deviation += rng(0, p.weapon.accuracy());
+  deviation += rng(0, p.weapon().curammo->accuracy);
+  deviation += rng(0, p.weapon().accuracy());
   int adj_recoil = p.recoil + p.driving_recoil;
   deviation += rng(int(adj_recoil / 4), adj_recoil);
 
@@ -782,8 +782,8 @@ double calculate_missed_by(player &p, int trange)
 
 int recoil_add(player &p)
 {
- it_gun* firing = dynamic_cast<it_gun*>(p.weapon.type);
- int ret = p.weapon.recoil();
+ it_gun* firing = dynamic_cast<it_gun*>(p.weapon().type);
+ int ret = p.weapon().recoil();
  ret -= rng(p.str_cur / 2, p.str_cur);
  ret -= rng(0, p.sklevel[firing->skill_used] / 2);
  if (ret > 0)
@@ -793,13 +793,13 @@ int recoil_add(player &p)
 
 void shoot_monster(game *g, player &p, monster &mon, int &dam, double goodhit)
 {
- it_gun* firing = dynamic_cast<it_gun*>(p.weapon.type);
+ it_gun* firing = dynamic_cast<it_gun*>(p.weapon().type);
  std::string message;
  int junk;
  bool u_see_mon = g->u_see(&(mon), junk);
  if (mon.has_flag(MF_HARDTOSHOOT) && !one_in(4) &&
-     !p.weapon.curammo->m1 == LIQUID && 
-     p.weapon.curammo->accuracy >= 4) { // Buckshot hits anyway
+     !p.weapon().curammo->m1 == LIQUID && 
+     p.weapon().curammo->accuracy >= 4) { // Buckshot hits anyway
   if (u_see_mon)
    g->add_msg("The shot passes through the %s without hitting.",
            mon.name().c_str());
@@ -807,10 +807,10 @@ void shoot_monster(game *g, player &p, monster &mon, int &dam, double goodhit)
  } else { // Not HARDTOSHOOT
 // Armor blocks BEFORE any critical effects.
   int zarm = mon.armor_cut();
-  zarm -= p.weapon.curammo->pierce;
-  if (p.weapon.curammo->m1 == LIQUID)
+  zarm -= p.weapon().curammo->pierce;
+  if (p.weapon().curammo->m1 == LIQUID)
    zarm = 0;
-  else if (p.weapon.curammo->accuracy < 4) // Shot doesn't penetrate armor well
+  else if (p.weapon().curammo->accuracy < 4) // Shot doesn't penetrate armor well
    zarm *= rng(2, 4);
   if (zarm > 0)
    dam -= zarm;
@@ -848,8 +848,8 @@ void shoot_monster(game *g, player &p, monster &mon, int &dam, double goodhit)
             mon.name().c_str());
    if (mon.hurt(dam))
     g->kill_mon(g->mon_at(mon.posx, mon.posy), (&p == &(g->u)));
-   else if (p.weapon.curammo->item_flags != 0)
-    g->hit_monster_with_flags(mon, p.weapon.curammo->item_flags);
+   else if (p.weapon().curammo->item_flags != 0)
+    g->hit_monster_with_flags(mon, p.weapon().curammo->item_flags);
    dam = 0;
   }
  }
@@ -857,7 +857,7 @@ void shoot_monster(game *g, player &p, monster &mon, int &dam, double goodhit)
 
 void shoot_player(game *g, player &p, player *h, int &dam, double goodhit)
 {
- it_gun* firing = dynamic_cast<it_gun*>(p.weapon.type);
+ it_gun* firing = dynamic_cast<it_gun*>(p.weapon().type);
  body_part hit;
  int side = rng(0, 1), junk;
  if (goodhit < .05) {

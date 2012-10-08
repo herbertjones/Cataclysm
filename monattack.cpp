@@ -1153,9 +1153,9 @@ void mattack::smg(game *g, monster *z)
   tmp.str_cur = 16;
   tmp.dex_cur =  6;
   tmp.per_cur =  8;
-  tmp.weapon = item(g->itypes[itm_smg_9mm], 0);
-  tmp.weapon.curammo = dynamic_cast<it_ammo*>(g->itypes[itm_9mm]);
-  tmp.weapon.charges = 10;
+  tmp.set_weapon( item(g->itypes[itm_smg_9mm], 0) );
+  tmp.weapon().curammo = dynamic_cast<it_ammo*>(g->itypes[itm_9mm]);
+  tmp.weapon().charges = 10;
   std::vector<point> traj = line_to(z->posx, z->posy,
                                     target->posx, target->posy, fire_t);
   g->fire(tmp, target->posx, target->posy, traj, true);
@@ -1190,9 +1190,9 @@ void mattack::smg(game *g, monster *z)
  tmp.str_cur = 16;
  tmp.dex_cur =  6;
  tmp.per_cur =  8;
- tmp.weapon = item(g->itypes[itm_smg_9mm], 0);
- tmp.weapon.curammo = dynamic_cast<it_ammo*>(g->itypes[itm_9mm]);
- tmp.weapon.charges = 10;
+ tmp.set_weapon( item(g->itypes[itm_smg_9mm], 0) );
+ tmp.weapon().curammo = dynamic_cast<it_ammo*>(g->itypes[itm_9mm]);
+ tmp.weapon().charges = 10;
  std::vector<point> traj = line_to(z->posx, z->posy, g->u.posx, g->u.posy, t);
  g->fire(tmp, g->u.posx, g->u.posy, traj, true);
  z->add_effect(ME_TARGETED, 3);

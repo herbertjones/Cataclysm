@@ -680,7 +680,7 @@ void game::craft()
  inventory crafting_inv;
  crafting_inv.form_from_map(this, point(u.posx, u.posy), PICKUP_RANGE);
  crafting_inv += u.inv;
- crafting_inv += u.weapon;
+ crafting_inv += u.weapon();
  if (u.has_bionic(bio_tools)) {
   item tools(itypes[itm_toolset], turn);
   tools.charges = u.power_level;
@@ -970,7 +970,7 @@ void game::pick_recipes(std::vector<recipe*> &current,
  inventory crafting_inv;
  crafting_inv.form_from_map(this, point(u.posx, u.posy), PICKUP_RANGE);
  crafting_inv += u.inv;
- crafting_inv += u.weapon;
+ crafting_inv += u.weapon();
  if (u.has_bionic(bio_tools)) {
   item tools(itypes[itm_toolset], turn);
   tools.charges = u.power_level;

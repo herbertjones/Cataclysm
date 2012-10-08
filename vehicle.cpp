@@ -1758,10 +1758,10 @@ bool vehicle::fire_turret_internal (int p, it_gun &gun, it_ammo &ammo, int charg
     tmp.str_cur = 16;
     tmp.dex_cur =  6;
     tmp.per_cur =  8;
-    tmp.weapon = item(&gun, 0);
+    tmp.set_weapon( item(&gun, 0) );
     it_ammo curam = ammo;
-    tmp.weapon.curammo = &curam;
-    tmp.weapon.charges = charges;
+    tmp.weapon().curammo = &curam;
+    tmp.weapon().charges = charges;
     g->fire(tmp, target->posx, target->posy, traj, true);
     if (ammo.type == AT_GAS)
     {

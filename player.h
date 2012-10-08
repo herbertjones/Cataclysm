@@ -251,6 +251,9 @@ public:
  bool has_item(item *it);		// Has a specific item
  bool has_mission_item(int mission_id);	// Has item with mission_id
  std::vector<int> has_ammo(ammotype at);// Returns a list of indices of the ammo
+ const item & weapon() const;
+ item & weapon();
+ void set_weapon(const item &);
 
 // ---------------VALUES-----------------
  int id;	// A unique ID number, assigned by the game class
@@ -301,7 +304,7 @@ public:
  std::vector <item> worn;
  std::vector<itype_id> styles;
  itype_id style_selected;
- item weapon;
+
  item ret_null;	// Null item, sometimes returns by weapon() etc
 
  std::vector <disease> illness;

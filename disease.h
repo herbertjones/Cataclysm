@@ -815,8 +815,8 @@ void dis_effect(game *g, player &p, disease &dis)
 
  case DI_EVIL: {
   bool lesser = false; // Worn or wielded; diminished effects
-  if (p.weapon.is_artifact() && p.weapon.is_tool()) {
-   it_artifact_tool *tool = dynamic_cast<it_artifact_tool*>(p.weapon.type);
+  if (p.weapon().is_artifact() && p.weapon().is_tool()) {
+   it_artifact_tool *tool = dynamic_cast<it_artifact_tool*>(p.weapon().type);
    for (int i = 0; i < tool->effects_carried.size(); i++) {
     if (tool->effects_carried[i] == AEP_EVIL)
      lesser = true;

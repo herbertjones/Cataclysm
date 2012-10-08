@@ -530,7 +530,7 @@ void monster::hit_player(game *g, player &p, bool can_grab)
       dice(type->melee_dice, 10) > dice(p.dodge(g), 10)) {
    if (!is_npc)
     g->add_msg("The %s grabs you!", name().c_str());
-   if (p.weapon.has_technique(TEC_BREAK, &p) &&
+   if (p.weapon().has_technique(TEC_BREAK, &p) &&
        dice(p.dex_cur + p.sklevel[sk_melee], 12) > dice(type->melee_dice, 10)){
     if (!is_npc)
      g->add_msg("You break the grab!");

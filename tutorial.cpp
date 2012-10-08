@@ -120,7 +120,7 @@ void tutorial_game::post_action(game *g, action_id act)
 {
  switch (act) {
  case ACTION_RELOAD:
-  if (g->u.weapon.is_gun() && !tutorials_seen[LESSON_GUN_FIRE]) {
+  if (g->u.weapon().is_gun() && !tutorials_seen[LESSON_GUN_FIRE]) {
    monster tmp(g->mtypes[mon_zombie], g->u.posx, g->u.posy - 6);
    g->z.push_back(tmp);
    tmp.spawn(g->u.posx + 2, g->u.posy - 5);
@@ -173,7 +173,7 @@ void tutorial_game::post_action(game *g, action_id act)
  } break;
 
  case ACTION_WIELD:
-  if (g->u.weapon.is_gun())
+  if (g->u.weapon().is_gun())
    add_message(g, LESSON_GUN_LOAD);
   break;
 

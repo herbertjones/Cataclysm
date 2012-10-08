@@ -381,7 +381,7 @@ std::string dynamic_line(talk_topic topic, game *g, npc *p)
 
  case TALK_WEAPON_DROPPED: {
   std::stringstream ret;
-  ret << "*drops " << (p->male ? "his" : "her") << " weapon.";
+  ret << "*drops " << (p->male ? "his" : "her") << " weapon().";
   return ret.str();
  }
  
@@ -1000,13 +1000,13 @@ std::vector<talk_response> gen_responses(talk_topic topic, game *g, npc *p)
     SUCCESS_ACTION(&talk_function::start_trade);
   } else {
    if (!g->u.unarmed_attack()) {
-    if (g->u.volume_carried() + g->u.weapon.volume() <= g->u.volume_capacity()){
-     RESPONSE("&Put away weapon.");
+    if (g->u.volume_carried() + g->u.weapon().volume() <= g->u.volume_capacity()){
+     RESPONSE("&Put away weapon().");
       SUCCESS(TALK_STRANGER_NEUTRAL);
       SUCCESS_ACTION(&talk_function::player_weapon_away);
       SUCCESS_OPINION(2, -2, 0, 0, 0);
     }
-    RESPONSE("&Drop weapon.");
+    RESPONSE("&Drop weapon().");
      SUCCESS(TALK_STRANGER_NEUTRAL);
      SUCCESS_ACTION(&talk_function::player_weapon_drop);
      SUCCESS_OPINION(4, -3, 0, 0, 0);
@@ -1054,7 +1054,7 @@ std::vector<talk_response> gen_responses(talk_topic topic, game *g, npc *p)
      SUCCESS_OPINION(-2, 1, 0, 1, 0);
     FAILURE(TALK_DONE);
      FAILURE_ACTION(&talk_function::hostile);
-   RESPONSE("&Drop weapon.");
+   RESPONSE("&Drop weapon().");
     if (topic == TALK_MUG) {
      SUCCESS(TALK_MUG);
     } else {
@@ -1480,17 +1480,17 @@ void parse_tags(std::string &phrase, player *u, npc *me)
   }
   if (!replaced) { // Special, dynamic tags go here
    if (tag == "<yrwp>")
-    phrase.replace(fa, l, u->weapon.tname());
+    phrase.replace(fa, l, u->weapon().tname());
    else if (tag == "<mywp>") {
-    if (me->weapon.type->id == 0)
+    if (me->weapon().type->id == 0)
      phrase.replace(fa, l, "fists");
     else
-     phrase.replace(fa, l, me->weapon.tname());
+     phrase.replace(fa, l, me->weapon().tname());
    } else if (tag == "<ammo>") {
-    if (!me->weapon.is_gun())
+    if (!me->weapon().is_gun())
      phrase.replace(fa, l, "BADAMMO");
     else {
-     it_gun* gun = dynamic_cast<it_gun*>(me->weapon.type);
+     it_gun* gun = dynamic_cast<it_gun*>(me->weapon().type);
      phrase.replace(fa, l, ammo_name(gun->ammo));
     }
    } else if (tag == "<punc>") {

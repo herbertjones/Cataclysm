@@ -243,17 +243,17 @@ void dis_effect(game *g, player &p, disease &dis)
 
  case DI_ONFIRE:
   p.hurtall(3);
-  for (int i = 0; i < p.worn.size(); i++) {
-   if (p.worn[i].made_of(VEGGY) || p.worn[i].made_of(PAPER) ||
-       p.worn[i].made_of(PAPER)) {
-    p.worn.erase(p.worn.begin() + i);
+  for (int i = 0; i < p.worn_items().size(); i++) {
+   if (p.worn_items()[i].made_of(VEGGY) || p.worn_items()[i].made_of(PAPER) ||
+       p.worn_items()[i].made_of(PAPER)) {
+    p.worn_items().erase(p.worn_items().begin() + i);
     i--;
-   } else if ((p.worn[i].made_of(COTTON) || p.worn[i].made_of(WOOL)) &&
+   } else if ((p.worn_items()[i].made_of(COTTON) || p.worn_items()[i].made_of(WOOL)) &&
               one_in(10)) {
-    p.worn.erase(p.worn.begin() + i);
+    p.worn_items().erase(p.worn_items().begin() + i);
     i--;
-   } else if (p.worn[i].made_of(PLASTIC) && one_in(50)) {
-    p.worn.erase(p.worn.begin() + i);
+   } else if (p.worn_items()[i].made_of(PLASTIC) && one_in(50)) {
+    p.worn_items().erase(p.worn_items().begin() + i);
     i--;
    }
   }
@@ -826,9 +826,9 @@ void dis_effect(game *g, player &p, disease &dis)
      lesser = true;
    }
   }
-  for (int i = 0; !lesser && i < p.worn.size(); i++) {
-   if (p.worn[i].is_artifact()) {
-    it_artifact_armor *armor = dynamic_cast<it_artifact_armor*>(p.worn[i].type);
+  for (int i = 0; !lesser && i < p.worn_items().size(); i++) {
+   if (p.worn_items()[i].is_artifact()) {
+    it_artifact_armor *armor = dynamic_cast<it_artifact_armor*>(p.worn_items()[i].type);
     for (int i = 0; i < armor->effects_worn.size(); i++) {
      if (armor->effects_worn[i] == AEP_EVIL)
       lesser = true;

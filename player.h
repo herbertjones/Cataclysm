@@ -301,7 +301,6 @@ public:
  //std::vector <item> inv;
  inventory inv;
  itype_id last_item;
- std::vector <item> worn;
  std::vector<itype_id> styles;
  itype_id style_selected;
 
@@ -309,6 +308,8 @@ public:
 
  std::vector <disease> illness;
  std::vector <addiction> addictions;
+ std::vector <item> & worn_items();
+ const std::vector <item> & worn_items() const;
 };
 
 #endif

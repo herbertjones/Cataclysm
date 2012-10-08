@@ -226,19 +226,19 @@ End of cheatery */
   set_weapon( item(g->itypes[0], 0) );
 // Nice to start out less than naked.
  item tmp(g->itypes[itm_jeans], 0, 'a');
- worn.push_back(tmp);
+ worn_items().push_back(tmp);
  tmp = item(g->itypes[itm_tshirt], 0, 'b');
- worn.push_back(tmp);
+ worn_items().push_back(tmp);
  tmp = item(g->itypes[itm_sneakers], 0, 'c');
- worn.push_back(tmp);
+ worn_items().push_back(tmp);
 // The near-sighted get to start with glasses.
  if (has_trait(PF_MYOPIC)) {
   tmp = item(g->itypes[itm_glasses_eye], 0, 'd');
-  worn.push_back(tmp);
+  worn_items().push_back(tmp);
  }
 // Likewise, the asthmatic start with their medication.
  if (has_trait(PF_ASTHMA)) {
-  tmp = item(g->itypes[itm_inhaler], 0, 'a' + worn.size());
+  tmp = item(g->itypes[itm_inhaler], 0, 'a' + worn_items().size());
   inv.push_back(tmp);
  }
 // make sure we have no mutations

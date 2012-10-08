@@ -67,6 +67,7 @@ inventory& inventory::operator= (const inventory &rhs)
  for (int i = 0; i < rhs.size(); i++)
   items.push_back(rhs.const_stack(i));
  weapon_ = rhs.weapon_;
+ worn_ = rhs.worn_;
  return *this;
 }
 
@@ -452,6 +453,16 @@ const item& inventory::weapon() const
 void inventory::set_weapon(const item & w)
 {
     weapon_ = w;
+}
+
+const std::vector<item>& inventory::worn_items() const
+{
+    return worn_;
+}
+
+std::vector<item>& inventory::worn_items()
+{
+    return worn_;
 }
 
 void inventory::assign_empty_invlet(item &it, player *p)

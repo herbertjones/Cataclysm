@@ -50,21 +50,21 @@ void print_inv_statics(game *g, WINDOW* w_inv, std::string title,
             g->u.weapon().invlet, g->u.weapname().c_str());
  else
   mvwprintz(w_inv, 3, 42, c_ltgray, g->u.weapname().c_str());
-// Print worn items
- if (g->u.worn.size() > 0)
-  mvwprintz(w_inv, 5, 40, c_magenta, "ITEMS WORN:");
- for (int i = 0; i < g->u.worn.size(); i++) {
+// Print worn_items() items
+ if (g->u.worn_items().size() > 0)
+  mvwprintz(w_inv, 5, 40, c_magenta, "ITEMS worn_items():");
+ for (int i = 0; i < g->u.worn_items().size(); i++) {
   bool dropping_armor = false;
   for (int j = 0; j < dropped_items.size() && !dropping_armor; j++) {
-   if (dropped_items[j] == g->u.worn[i].invlet)
+   if (dropped_items[j] == g->u.worn_items()[i].invlet)
     dropping_armor = true;
   }
   if (dropping_armor)
-   mvwprintz(w_inv, 6 + i, 40, c_white, "%c + %s", g->u.worn[i].invlet,
-             g->u.worn[i].tname(g).c_str());
+   mvwprintz(w_inv, 6 + i, 40, c_white, "%c + %s", g->u.worn_items()[i].invlet,
+             g->u.worn_items()[i].tname(g).c_str());
   else
-   mvwprintz(w_inv, 6 + i, 40, c_ltgray, "%c - %s", g->u.worn[i].invlet,
-             g->u.worn[i].tname(g).c_str());
+   mvwprintz(w_inv, 6 + i, 40, c_ltgray, "%c - %s", g->u.worn_items()[i].invlet,
+             g->u.worn_items()[i].tname(g).c_str());
  }
 }
  

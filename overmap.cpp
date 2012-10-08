@@ -2423,7 +2423,7 @@ void overmap::open(game *g, int x, int y, int z)
      switch (datatype) {
       case 'I': npc_inventory.push_back(tmp);                 break;
       case 'C': npc_inventory.back().contents.push_back(tmp); break;
-      case 'W': last->worn.push_back(tmp);                    break;
+      case 'W': last->worn_items().push_back(tmp);                    break;
       case 'w': last->set_weapon( tmp );                      break;
       case 'c': last->weapon().contents.push_back(tmp);       break;
      }

@@ -112,9 +112,9 @@ npc& npc::operator= (const npc & rhs)
 
  ret_null = rhs.ret_null;
  inv = rhs.inv;
- worn.clear();
- for (int i = 0; i < rhs.worn.size(); i++)
-  worn.push_back(rhs.worn[i]);
+ worn_items().clear();
+ for (int i = 0; i < rhs.worn_items().size(); i++)
+  worn_items().push_back(rhs.worn_items()[i]);
 
  needs.clear();
  for (int i = 0; i < rhs.needs.size(); i++)
@@ -195,7 +195,7 @@ std::string npc::save_info()
  dump << combat_rules.save_info();
  
 // Inventory size, plus armor size, plus 1 for the weapon
- dump << std::endl << inv.num_items() + worn.size() + 1 << std::endl;
+ dump << std::endl << inv.num_items() + worn_items().size() + 1 << std::endl;
  for (int i = 0; i < inv.size(); i++) {
   for (int j = 0; j < inv.stack_at(i).size(); j++) {
    dump << "I " << inv.stack_at(i)[j].save_info() << std::endl;
@@ -204,8 +204,8 @@ std::string npc::save_info()
   }
  }
  dump << "w " << weapon().save_info() << std::endl;
- for (int i = 0; i < worn.size(); i++)
-  dump << "W " << worn[i].save_info() << std::endl;
+ for (int i = 0; i < worn_items().size(); i++)
+  dump << "W " << worn_items()[i].save_info() << std::endl;
  for (int j = 0; j < weapon().contents.size(); j++)
   dump << "c " << weapon().contents[j].save_info() << std::endl;
 
@@ -467,7 +467,7 @@ void npc::randomize(game *g, npc_class type)
   hp_cur[i] = hp_max[i];
  }
  starting_weapon(g);
- worn = starting_clothes(type, male, g);
+ worn_items() = starting_clothes(type, male, g);
  inv.clear();
  inv.add_stack(starting_inv(this, type, g));
  update_worst_item_value();
@@ -1143,15 +1143,15 @@ bool npc::wear_if_wanted(item it)
    encumb_ok = false;
  }
  if (encumb_ok) {
-  worn.push_back(it);
+  worn_items().push_back(it);
   return true;
  }
 // Otherwise, maybe we should take off one or more items and replace them
  std::vector<int> removal;
- for (int i = 0; i < worn.size(); i++) {
+ for (int i = 0; i < worn_items().size(); i++) {
   for (int j = 0; j < num_bp; j++) {
    if (armor->covers & mfb(j) &&
-       dynamic_cast<it_armor*>(worn[i].type)->covers & mfb(j)) {
+       dynamic_cast<it_armor*>(worn_items()[i].type)->covers & mfb(j)) {
     removal.push_back(i);
     j = num_bp;
    }
@@ -1159,9 +1159,9 @@ bool npc::wear_if_wanted(item it)
  }
  for (int i = 0; i < removal.size(); i++) {
   if (true) {
-//  if (worn[removal[i]].value_to(this) < it.value_to(this)) {
-   inv.push_back(worn[removal[i]]);
-   worn.push_back(it);
+//  if (worn_items()[removal[i]].value_to(this) < it.value_to(this)) {
+   inv.push_back(worn_items()[removal[i]]);
+   worn_items().push_back(it);
    return true;
   }
  }
@@ -1907,10 +1907,10 @@ void npc::print_info(WINDOW* w)
  std::string wearing;
  std::stringstream wstr;
  wstr << "Wearing: ";
- for (int i = 0; i < worn.size(); i++) {
+ for (int i = 0; i < worn_items().size(); i++) {
   if (i > 0)
    wstr << ", ";
-  wstr << worn[i].tname();
+  wstr << worn_items()[i].tname();
  }
  wearing = wstr.str();
  int line = 8;
@@ -1931,10 +1931,10 @@ std::string npc::short_description()
 {
  std::stringstream ret;
  ret << "Wielding " << weapon().tname() << ";   " << "Wearing: ";
- for (int i = 0; i < worn.size(); i++) {
+ for (int i = 0; i < worn_items().size(); i++) {
   if (i > 0)
    ret << ", ";
-  ret << worn[i].tname();
+  ret << worn_items()[i].tname();
  }
 
  return ret.str();
@@ -2048,8 +2048,8 @@ void npc::die(game *g, bool your_fault)
  g->m.add_item(posx, posy, my_body);
  for (int i = 0; i < inv.size(); i++)
   g->m.add_item(posx, posy, inv[i]);
- for (int i = 0; i < worn.size(); i++)
-  g->m.add_item(posx, posy, worn[i]);
+ for (int i = 0; i < worn_items().size(); i++)
+  g->m.add_item(posx, posy, worn_items()[i]);
  if (weapon().type->id != itm_null)
   g->m.add_item(posx, posy, weapon());
 

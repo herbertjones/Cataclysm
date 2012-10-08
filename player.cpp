@@ -165,7 +165,6 @@ player& player::operator= (const player & rhs)
   inv.add_stack(rhs.inv.const_stack(i));
 
  last_item = rhs.last_item;
- worn = rhs.worn;
  styles = rhs.styles;
  style_selected = rhs.style_selected;
 
@@ -455,8 +454,8 @@ int player::swim_speed()
  ret += (50 - sklevel[sk_swimming] * 2) * abs(encumb(bp_legs));
  ret += (80 - sklevel[sk_swimming] * 3) * abs(encumb(bp_torso));
  if (sklevel[sk_swimming] < 10) {
-  for (int i = 0; i < worn.size(); i++)
-   ret += (worn[i].volume() * (10 - sklevel[sk_swimming])) / 2;
+  for (int i = 0; i < worn_items().size(); i++)
+   ret += (worn_items()[i].volume() * (10 - sklevel[sk_swimming])) / 2;
  }
  ret -= str_cur * 6 + dex_cur * 4;
 // If (ret > 500), we can not swim; so do not apply the underwater bonus.
@@ -659,8 +658,8 @@ std::string player::save_info()
     dump << "C " << inv.stack_at(i)[j].contents[k].save_info() << std::endl;
   }
  }
- for (int i = 0; i < worn.size(); i++)
-  dump << "W " << worn[i].save_info() << std::endl;
+ for (int i = 0; i < worn_items().size(); i++)
+  dump << "W " << worn_items()[i].save_info() << std::endl;
  if (!weapon().is_null())
   dump << "w " << weapon().save_info() << std::endl;
  for (int j = 0; j < weapon().contents.size(); j++)
@@ -2918,8 +2917,8 @@ int player::weight_carried()
 {
  int ret = 0;
  ret += weapon().weight();
- for (int i = 0; i < worn.size(); i++)
-  ret += worn[i].weight();
+ for (int i = 0; i < worn_items().size(); i++)
+  ret += worn_items()[i].weight();
  for (int i = 0; i < inv.size(); i++) {
   for (int j = 0; j < inv.stack_at(i).size(); j++)
    ret += inv.stack_at(i)[j].weight();
@@ -2956,8 +2955,8 @@ int player::volume_capacity()
 {
  int ret = 2;	// A small bonus (the overflow)
  it_armor *armor;
- for (int i = 0; i < worn.size(); i++) {
-  armor = dynamic_cast<it_armor*>(worn[i].type);
+ for (int i = 0; i < worn_items().size(); i++) {
+  armor = dynamic_cast<it_armor*>(worn_items()[i].type);
   ret += armor->storage;
  }
  if (has_bionic(bio_storage))
@@ -3219,9 +3218,9 @@ void player::process_active_items(game *g)
    }
   }
  }
- for (int i = 0; i < worn.size(); i++) {
-  if (worn[i].is_artifact())
-   g->process_artifact(&(worn[i]), this);
+ for (int i = 0; i < worn_items().size(); i++) {
+  if (worn_items()[i].is_artifact())
+   g->process_artifact(&(worn_items()[i]), this);
  }
 }
 
@@ -3292,10 +3291,10 @@ item player::i_rem(char let)
   inv.set_weapon( ret_null );
   return tmp;
  }
- for (int i = 0; i < worn.size(); i++) {
-  if (worn[i].invlet == let) {
-   tmp = worn[i];
-   worn.erase(worn.begin() + i);
+ for (int i = 0; i < worn_items().size(); i++) {
+  if (worn_items()[i].invlet == let) {
+   tmp = worn_items()[i];
+   worn_items().erase(worn_items().begin() + i);
    return tmp;
   }
  }
@@ -3322,9 +3321,9 @@ item& player::i_at(char let)
   return ret_null;
  if (weapon().invlet == let)
   return weapon();
- for (int i = 0; i < worn.size(); i++) {
-  if (worn[i].invlet == let)
-   return worn[i];
+ for (int i = 0; i < worn_items().size(); i++) {
+  if (worn_items()[i].invlet == let)
+   return worn_items()[i];
  }
  int index = inv.index_by_letter(let);
  if (index == -1)
@@ -3336,9 +3335,9 @@ item& player::i_of_type(itype_id type)
 {
  if (weapon().type->id == type)
   return weapon();
- for (int i = 0; i < worn.size(); i++) {
-  if (worn[i].type->id == type)
-   return worn[i];
+ for (int i = 0; i < worn_items().size(); i++) {
+  if (worn_items()[i].type->id == type)
+   return worn_items()[i];
  }
  for (int i = 0; i < inv.size(); i++) {
   if (inv[i].type->id == type)
@@ -3352,8 +3351,8 @@ std::vector<item> player::inv_dump()
  std::vector<item> ret;
  if (weapon().type->id != 0 && weapon().type->id < num_items)
   ret.push_back(weapon());
- for (int i = 0; i < worn.size(); i++)
-  ret.push_back(worn[i]);
+ for (int i = 0; i < worn_items().size(); i++)
+  ret.push_back(worn_items()[i]);
  for(int i = 0; i < inv.size(); i++) {
   for (int j = 0; j < inv.stack_at(i).size(); j++)
    ret.push_back(inv.stack_at(i)[j]);
@@ -3488,8 +3487,8 @@ int player::pick_usb()
 
 bool player::is_wearing(itype_id it)
 {
- for (int i = 0; i < worn.size(); i++) {
-  if (worn[i].type->id == it)
+ for (int i = 0; i < worn_items().size(); i++) {
+  if (worn_items()[i].type->id == it)
    return true;
  }
  return false;
@@ -3517,9 +3516,9 @@ bool player::has_artifact_with(art_effect_passive effect)
    }
   }
  }
- for (int i = 0; i < worn.size(); i++) {
-  if (worn[i].is_artifact()) {
-   it_artifact_armor *armor = dynamic_cast<it_artifact_armor*>(worn[i].type);
+ for (int i = 0; i < worn_items().size(); i++) {
+  if (worn_items()[i].is_artifact()) {
+   it_artifact_armor *armor = dynamic_cast<it_artifact_armor*>(worn_items()[i].type);
    for (int i = 0; i < armor->effects_worn.size(); i++) {
     if (armor->effects_worn[i] == effect)
      return true;
@@ -3592,8 +3591,8 @@ bool player::has_weapon_or_armor(char let)
 {
  if (weapon().invlet == let)
   return true;
- for (int i = 0; i < worn.size(); i++) {
-  if (worn[i].invlet == let)
+ for (int i = 0; i < worn_items().size(); i++) {
+  if (worn_items()[i].invlet == let)
    return true;
  }
  return false;
@@ -3608,8 +3607,8 @@ bool player::has_item(item *it)
 {
  if (it == &weapon())
   return true;
- for (int i = 0; i < worn.size(); i++) {
-  if (it == &(worn[i]))
+ for (int i = 0; i < worn_items().size(); i++) {
+  if (it == &(worn_items()[i]))
    return true;
  }
  return inv.has_item(it);
@@ -4024,8 +4023,8 @@ bool player::wear_item(game *g, item *to_wear)
 
 // Make sure we're not wearing 2 of the item already
  int count = 0;
- for (int i = 0; i < worn.size(); i++) {
-  if (worn[i].type->id == to_wear->type->id)
+ for (int i = 0; i < worn_items().size(); i++) {
+  if (worn_items()[i].type->id == to_wear->type->id)
    count++;
  }
  if (count == 2) {
@@ -4086,7 +4085,7 @@ bool player::wear_item(game *g, item *to_wear)
  }
  moves -= 350; // TODO: Make this variable?
  last_item = itype_id(to_wear->type->id);
- worn.push_back(*to_wear);
+ worn_items().push_back(*to_wear);
  for (body_part i = bp_head; i < num_bp; i = body_part(i + 1)) {
   if (armor->covers & mfb(i) && encumb(i) >= 4)
    g->add_msg("Your %s %s very encumbered! %s",
@@ -4099,18 +4098,18 @@ bool player::wear_item(game *g, item *to_wear)
 
 bool player::takeoff(game *g, char let)
 {
- for (int i = 0; i < worn.size(); i++) {
-  if (worn[i].invlet == let) {
-   if (volume_capacity() - (dynamic_cast<it_armor*>(worn[i].type))->storage >
-       volume_carried() + worn[i].type->volume) {
-    inv.push_back(worn[i]);
-    worn.erase(worn.begin() + i);
+ for (int i = 0; i < worn_items().size(); i++) {
+  if (worn_items()[i].invlet == let) {
+   if (volume_capacity() - (dynamic_cast<it_armor*>(worn_items()[i].type))->storage >
+       volume_carried() + worn_items()[i].type->volume) {
+    inv.push_back(worn_items()[i]);
+    worn_items().erase(worn_items().begin() + i);
     inv_sorted = false;
     return true;
    } else if (query_yn("No room in inventory for your %s.  Drop it?",
-                       worn[i].tname(g).c_str())) {
-    g->m.add_item(posx, posy, worn[i]);
-    worn.erase(worn.begin() + i);
+                       worn_items()[i].tname(g).c_str())) {
+    g->m.add_item(posx, posy, worn_items()[i]);
+    worn_items().erase(worn_items().begin() + i);
     return true;
    } else
     return false;
@@ -4434,9 +4433,9 @@ bool player::can_sleep(game *g)
 int player::warmth(body_part bp)
 {
  int ret = 0;
- for (int i = 0; i < worn.size(); i++) {
-  if ((dynamic_cast<it_armor*>(worn[i].type))->covers & mfb(bp))
-   ret += (dynamic_cast<it_armor*>(worn[i].type))->warmth;
+ for (int i = 0; i < worn_items().size(); i++) {
+  if ((dynamic_cast<it_armor*>(worn_items()[i].type))->covers & mfb(bp))
+   ret += (dynamic_cast<it_armor*>(worn_items()[i].type))->warmth;
  }
  return ret;
 }
@@ -4446,11 +4445,11 @@ int player::encumb(body_part bp)
  int ret = 0;
  int layers = 0;
  it_armor* armor;
- for (int i = 0; i < worn.size(); i++) {
-  if (!worn[i].is_armor())
+ for (int i = 0; i < worn_items().size(); i++) {
+  if (!worn_items()[i].is_armor())
    debugmsg("%s::encumb hit a non-armor item at worn[%d] (%s)", name.c_str(),
-            i, worn[i].tname().c_str());
-  armor = dynamic_cast<it_armor*>(worn[i].type);
+            i, worn_items()[i].tname().c_str());
+  armor = dynamic_cast<it_armor*>(worn_items()[i].type);
   if (armor->covers & mfb(bp) ||
       (bp == bp_torso && (armor->covers & mfb(bp_arms)))) {
    ret += armor->encumber;
@@ -4485,8 +4484,8 @@ int player::armor_bash(body_part bp)
 {
  int ret = 0;
  it_armor* armor;
- for (int i = 0; i < worn.size(); i++) {
-  armor = dynamic_cast<it_armor*>(worn[i].type);
+ for (int i = 0; i < worn_items().size(); i++) {
+  armor = dynamic_cast<it_armor*>(worn_items()[i].type);
   if (armor->covers & mfb(bp))
    ret += armor->dmg_resist;
  }
@@ -4514,8 +4513,8 @@ int player::armor_cut(body_part bp)
 {
  int ret = 0;
  it_armor* armor;
- for (int i = 0; i < worn.size(); i++) {
-  armor = dynamic_cast<it_armor*>(worn[i].type);
+ for (int i = 0; i < worn_items().size(); i++) {
+  armor = dynamic_cast<it_armor*>(worn_items()[i].type);
   if (armor->covers & mfb(bp))
    ret += armor->cut_resist;
  }
@@ -4569,12 +4568,12 @@ void player::absorb(game *g, body_part bp, int &dam, int &cut)
  }
 // See, we do it backwards, which assumes the player put on their jacket after
 //  their T shirt, for example.  TODO: don't assume! ASS out of U & ME, etc.
- for (int i = worn.size() - 1; i >= 0; i--) {
-  tmp = dynamic_cast<it_armor*>(worn[i].type);
+ for (int i = worn_items().size() - 1; i >= 0; i--) {
+  tmp = dynamic_cast<it_armor*>(worn_items()[i].type);
   if ((tmp->covers & mfb(bp)) && tmp->storage < 20) {
    arm_bash = tmp->dmg_resist;
    arm_cut  = tmp->cut_resist;
-   switch (worn[i].damage) {
+   switch (worn_items()[i].damage) {
    case 1:
     arm_bash *= .8;
     arm_cut  *= .9;
@@ -4593,25 +4592,25 @@ void player::absorb(game *g, body_part bp, int &dam, int &cut)
     break;
    }
 // Wool, leather, and cotton clothing may be damaged by CUTTING damage
-   if ((worn[i].made_of(WOOL)   || worn[i].made_of(LEATHER) ||
-        worn[i].made_of(COTTON) || worn[i].made_of(GLASS)   ||
-        worn[i].made_of(WOOD)   || worn[i].made_of(KEVLAR)) &&
+   if ((worn_items()[i].made_of(WOOL)   || worn_items()[i].made_of(LEATHER) ||
+        worn_items()[i].made_of(COTTON) || worn_items()[i].made_of(GLASS)   ||
+        worn_items()[i].made_of(WOOD)   || worn_items()[i].made_of(KEVLAR)) &&
        rng(0, tmp->cut_resist * 2) < cut && !one_in(cut))
-    worn[i].damage++;
+    worn_items()[i].damage++;
 // Kevlar, plastic, iron, steel, and silver may be damaged by BASHING damage
-   if ((worn[i].made_of(PLASTIC) || worn[i].made_of(IRON)   ||
-        worn[i].made_of(STEEL)   || worn[i].made_of(SILVER) ||
-        worn[i].made_of(STONE))  &&
+   if ((worn_items()[i].made_of(PLASTIC) || worn_items()[i].made_of(IRON)   ||
+        worn_items()[i].made_of(STEEL)   || worn_items()[i].made_of(SILVER) ||
+        worn_items()[i].made_of(STONE))  &&
        rng(0, tmp->dmg_resist * 2) < dam && !one_in(dam))
-    worn[i].damage++;
-   if (worn[i].damage >= 5) {
+    worn_items()[i].damage++;
+   if (worn_items()[i].damage >= 5) {
     int linet;
     if (!is_npc())
-     g->add_msg("Your %s is completely destroyed!", worn[i].tname(g).c_str());
+     g->add_msg("Your %s is completely destroyed!", worn_items()[i].tname(g).c_str());
     else if (g->u_see(posx, posy, linet))
      g->add_msg("%s's %s is destroyed!", name.c_str(),
-                worn[i].tname(g).c_str());
-    worn.erase(worn.begin() + i);
+                worn_items()[i].tname(g).c_str());
+    worn_items().erase(worn_items().begin() + i);
    }
   }
   dam -= arm_bash;
@@ -4675,11 +4674,11 @@ void player::absorb(game *g, body_part bp, int &dam, int &cut)
 int player::resist(body_part bp)
 {
  int ret = 0;
- for (int i = 0; i < worn.size(); i++) {
-  if ((dynamic_cast<it_armor*>(worn[i].type))->covers & mfb(bp) ||
+ for (int i = 0; i < worn_items().size(); i++) {
+  if ((dynamic_cast<it_armor*>(worn_items()[i].type))->covers & mfb(bp) ||
       (bp == bp_eyes && // Head protection works on eyes too (e.g. baseball cap)
-           (dynamic_cast<it_armor*>(worn[i].type))->covers & mfb(bp_head)))
-   ret += (dynamic_cast<it_armor*>(worn[i].type))->env_resist;
+           (dynamic_cast<it_armor*>(worn_items()[i].type))->covers & mfb(bp_head)))
+   ret += (dynamic_cast<it_armor*>(worn_items()[i].type))->env_resist;
  }
  if (bp == bp_mouth && has_bionic(bio_purifier) && ret < 5) {
   ret += 2;
@@ -4691,8 +4690,8 @@ int player::resist(body_part bp)
 
 bool player::wearing_something_on(body_part bp)
 {
- for (int i = 0; i < worn.size(); i++) {
-  if ((dynamic_cast<it_armor*>(worn[i].type))->covers & mfb(bp))
+ for (int i = 0; i < worn_items().size(); i++) {
+  if ((dynamic_cast<it_armor*>(worn_items()[i].type))->covers & mfb(bp))
     return true;
  }
  return false;
@@ -4782,6 +4781,16 @@ item & player::weapon()
 void player::set_weapon(const item & it)
 {
     inv.set_weapon(it);
+}
+
+const std::vector<item>& player::worn_items() const
+{
+    return inv.worn_items();
+}
+
+std::vector<item>& player::worn_items()
+{
+    return inv.worn_items();
 }
 
 std::string player::weapname(bool charges)

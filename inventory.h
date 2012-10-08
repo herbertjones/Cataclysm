@@ -73,10 +73,14 @@ class inventory
 
   item nullitem;
   std::vector<item> nullstack;
+  std::vector<item> & worn_items();
+  const std::vector<item> & worn_items() const;
+
  private:
   void assign_empty_invlet(item &it, player *p = NULL);
   std::vector< std::vector<item> > items;
   item weapon_;
+  std::vector <item> worn_;
 };
 
 #endif

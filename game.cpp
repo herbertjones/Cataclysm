@@ -1690,7 +1690,7 @@ bool game::load_master()
      tmpinv[tmpinv.size() - 1].contents.push_back(item(itemdata, this));
      j--;
     } else if (item_place == 'W')
-     tmp.worn.push_back(item(itemdata, this));
+     tmp.worn_items().push_back(item(itemdata, this));
     else if (item_place == 'w')
      tmp.set_weapon( item(itemdata, this) );
     else if (item_place == 'c') {
@@ -1790,7 +1790,7 @@ void game::load(std::string name)
    else if (item_place == 'C')
     tmpinv[tmpinv.size() - 1].contents.push_back(item(itemdata, this));
    else if (item_place == 'W')
-    u.worn.push_back(item(itemdata, this));
+    u.worn_items().push_back(item(itemdata, this));
    else if (item_place == 'w')
     u.set_weapon( item(itemdata, this) );
    else if (item_place == 'c')
@@ -2912,9 +2912,9 @@ void game::remove_item(item *it)
    return;
   }
  }
- for (int i = 0; i < u.worn.size(); i++) {
-  if (it == &u.worn[i]) {
-   u.worn.erase(u.worn.begin() + i);
+ for (int i = 0; i < u.worn_items().size(); i++) {
+  if (it == &u.worn_items()[i]) {
+   u.worn_items().erase(u.worn_items().begin() + i);
    return;
   }
  }
@@ -2938,9 +2938,9 @@ void game::remove_item(item *it)
     return;
    }
   }
-  for (int j = 0; j < active_npc[i].worn.size(); j++) {
-   if (it == &active_npc[i].worn[j]) {
-    active_npc[i].worn.erase(active_npc[i].worn.begin() + j);
+  for (int j = 0; j < active_npc[i].worn_items().size(); j++) {
+   if (it == &active_npc[i].worn_items()[j]) {
+    active_npc[i].worn_items().erase(active_npc[i].worn_items().begin() + j);
     return;
    }
   }
@@ -4780,7 +4780,7 @@ void game::pickup(int posx, int posy, int min)
   } else if (u.volume_carried() + newit.volume() > u.volume_capacity()) {
    if (u.is_armed()) {
     if (!u.weapon().has_flag(IF_NO_UNWIELD)) {
-     if (newit.is_armor() && // Armor can be instantly worn
+     if (newit.is_armor() && // Armor can be instantly worn_items()
          query_yn("Put on the %s?", newit.tname(this).c_str())) {
       if(u.wear_item(this, &newit)){
        if (from_veh)
@@ -4982,7 +4982,7 @@ void game::pickup(int posx, int posy, int min)
    } else if (u.volume_carried() + here[i].volume() > u.volume_capacity()) {
     if (u.is_armed()) {
      if (!u.weapon().has_flag(IF_NO_UNWIELD)) {
-      if (here[i].is_armor() && // Armor can be instantly worn
+      if (here[i].is_armor() && // Armor can be instantly worn_items()
           query_yn("Put on the %s?", here[i].tname(this).c_str())) {
        if(u.wear_item(this, &(here[i])))
        {

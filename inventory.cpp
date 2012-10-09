@@ -480,8 +480,9 @@ const item& inventory::weapon() const
 
 void inventory::set_weapon(const item & w)
 {
- weapon_ = w;
- give_inventory_letter(weapon_);
+ item w_(w);
+ give_inventory_letter(w_);
+ weapon_ = w_;
 }
 
 const std::vector<item>& inventory::worn_items() const

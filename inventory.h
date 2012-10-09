@@ -80,7 +80,7 @@ class inventory
   void remove_worn_item(int i);
   void remove_worn_items(std::vector<int>);
   item& worn_item_at(int);
-  void add_worn_item(const item &);
+  void add_worn_item(item);
   void clear_worn_items();
 
   bool has_weapon_or_armor(char let);

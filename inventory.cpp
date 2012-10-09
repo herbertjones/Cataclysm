@@ -3,6 +3,7 @@
 #include "game.h"
 #include "keypress.h"
 #include <algorithm>
+#include <set>
 
 item& inventory::operator[] (int i)
 {
@@ -160,32 +161,21 @@ void inventory::push_back(const std::vector<item> & newits)
 {
  add_stack(newits);
 }
- 
+
 void inventory::add_item(item newit)
 {
- if (newit.is_style())
-  return; // Styles never belong in our inventory.
-
- bool collides = false;
+ give_inventory_letter(newit);
 
  // Check if stacks
  for( std::vector< std::vector<item> >::iterator stack_it = items.begin(),
-      stack_it_end = items.end(); stack_it != stack_it_end; ++stack_it ) {
-  for( std::vector<item>::iterator it = stack_it->begin(), end = stack_it->end();
-        it != end; ++it ) {
-   if (it->stacks_with(newit)) {
-    newit.invlet = it->invlet;
-    stack_it->push_back(newit);
-    return;
-   }
-   if( it->invlet == newit.invlet )
-    collides = true;
+   stack_it_end = items.end(); stack_it != stack_it_end; ++stack_it ) {
+  item & it = stack_it->at(0);
+  if (it.stacks_with(newit)) {
+   newit.invlet = it.invlet;
+   stack_it->push_back(newit);
+   return;
   }
  }
-
- // Use existing letter if possible, else pick a new one.
- if( collides || !newit.invlet_is_okay() )
-  assign_empty_invlet(newit);
 
  // Add new stack
  std::vector<item> newstack;
@@ -212,24 +202,24 @@ void inventory::restack()
 
  for ( std::vector< std::vector<item> >::iterator outer_it = tmp.begin(),
    outer_it_end = tmp.end(); outer_it != outer_it_end; ++outer_it ) {
-  if (!outer_it->empty()) { // Skip empty
-   item & fit = outer_it->at(0);
-   if( !fit.invlet_is_okay() || has_weapon_or_armor(fit.invlet)) {
-    assign_empty_invlet(fit);
-    std::vector<item>::iterator it = outer_it->begin(),
-                            it_end = outer_it->end();
-    ++it; // skip first we just did
-    for( ; it != it_end; ++it ) {
-     it->invlet = fit.invlet; // Update rest in stack
-    }
-   }
+  if (outer_it->empty()) continue; // Skip empty
 
-   // Now we can move the stack back over
-   std::vector<item> empty_stack;
-   std::vector< std::vector<item> >::iterator toswap = items.insert(
-                                             items.end(), empty_stack );
-   outer_it->swap( *toswap );
+  item & fit = outer_it->at(0);
+  if( !fit.invlet_is_okay() || has_weapon_or_armor(fit.invlet)) {
+   assign_empty_invlet(fit);
+   std::vector<item>::iterator it = outer_it->begin(),
+                           it_end = outer_it->end();
+   ++it; // skip first we just did
+   for( ; it != it_end; ++it ) {
+    it->invlet = fit.invlet; // Update rest in stack
+   }
   }
+
+  // Now we can move the stack back over
+  std::vector<item> empty_stack;
+  std::vector< std::vector<item> >::iterator toswap = items.insert(
+                                             items.end(), empty_stack );
+  outer_it->swap( *toswap );
  }
 }
 
@@ -452,7 +442,7 @@ void inventory::use_charges(itype_id it, int quantity)
   }
  }
 }
- 
+
 bool inventory::has_amount(itype_id it, int quantity)
 {
  return (amount_of(it) >= quantity);
@@ -490,8 +480,8 @@ const item& inventory::weapon() const
 
 void inventory::set_weapon(const item & w)
 {
- // TODO: Make sure inventory letter sane.
  weapon_ = w;
+ give_inventory_letter(weapon_);
 }
 
 const std::vector<item>& inventory::worn_items() const
@@ -530,9 +520,9 @@ void inventory::remove_worn_items(std::vector<int> item_ids)
  }
 }
 
-void inventory::add_worn_item(const item & it)
+void inventory::add_worn_item(item it)
 {
- // TODO: Fix inv id
+ give_inventory_letter(it);
  worn_.push_back(it);
 }
 
@@ -559,30 +549,42 @@ bool inventory::give_inventory_letter(item & newit)
  if (newit.is_style())
   return false; // Styles never belong in our inventory.
 
- bool collides = false;
+ bool reassign = false;
  char orig_char = newit.invlet;
 
- // Check if stacks
- for( std::vector< std::vector<item> >::iterator stack_it = items.begin(),
-      stack_it_end = items.end(); stack_it != stack_it_end; ++stack_it ) {
-  for( std::vector<item>::iterator it = stack_it->begin(), end = stack_it->end();
-        it != end; ++it ) {
-   if (it->stacks_with(newit)) {
-    newit.invlet = it->invlet;
-    return true;
+ if(newit.invlet_is_okay())
+ {
+  if( weapon_.invlet == newit.invlet )
+   reassign = true;
+
+  // Check if stacks
+  if (!reassign) {
+   for( std::vector< std::vector<item> >::iterator stack_it = items.begin(),
+         stack_it_end = items.end(); stack_it != stack_it_end; ++stack_it ) {
+    item & it = stack_it->at(0);
+    if (it.stacks_with(newit)) {
+     newit.invlet = it.invlet;
+     return true;
+    }
+    if( it.invlet == newit.invlet )
+     reassign = true;
    }
-   if( it->invlet == newit.invlet )
-   {
-    collides = true;
+  }
+
+  if (!reassign) {
+   for( std::vector<item>::iterator it = worn_.begin(),
+         stack_it_end = worn_.end(); it != stack_it_end; ++it ) {
+    if( it->invlet == newit.invlet )
+     reassign = true;
    }
   }
  }
+ else
+  reassign = true;
 
  // Use existing letter if possible, else pick a new one.
- if( collides || !newit.invlet_is_okay() )
- {
+ if( reassign )
   assign_empty_invlet(newit);
- }
 
  if( newit.invlet == '`' ) {
   newit.invlet = orig_char;
@@ -591,24 +593,85 @@ bool inventory::give_inventory_letter(item & newit)
  return true;
 }
 
-void inventory::assign_empty_invlet(item &it)
+void inventory::assign_empty_invlet(item & newit)
 {
- for (int ch = 'a'; ch <= 'z'; ch++) {
-  //debugmsg("Trying %c", ch);
-  if (index_by_letter(ch) == -1 && !has_weapon_or_armor(ch)) {
-   it.invlet = ch;
-   //debugmsg("Using %c", ch);
+ std::set<char> taken_letters;
+
+ // Add our inventory to any pased in letters.
+ //std::vector<item> items(inv.as_vector());
+ for( std::vector< std::vector<item> >::iterator it = items.begin(),
+       it_end = items.end(); it != it_end; ++it )
+  taken_letters.insert( it->at(0).invlet );
+
+ for( std::vector<item>::iterator it = worn_.begin(),
+       it_end = worn_.end(); it != it_end; ++it )
+  taken_letters.insert( it->invlet );
+
+ if (!weapon_.is_null())
+  taken_letters.insert( weapon_.invlet );
+
+ char ch = 'a';
+ std::string name = newit.tname();
+ if( ! name.empty() )
+  ch = name[0];
+
+ // ch should be lowercase letter.
+ if( ch >= 'A' && ch <= 'Z')
+  ch = std::tolower( ch );
+
+ if( ! (ch >= 'a' && ch <= 'z') )
+  ch = 'a';
+ else
+ {
+  // Try current lowercase
+  if( taken_letters.find( ch ) == taken_letters.end() )
+  {
+   // No match, can use.
+   newit.invlet = ch;
    return;
   }
- }
- for (int ch = 'A'; ch <= 'Z'; ch++) {
-  //debugmsg("Trying %c", ch);
-  if (index_by_letter(ch) == -1 && !has_weapon_or_armor(ch)) {
-   //debugmsg("Using %c", ch);
-   it.invlet = ch;
+
+  // Try uppercase
+  char up = std::toupper(ch);
+  if( taken_letters.find( up ) == taken_letters.end() )
+  {
+   // No match, can use.
+   newit.invlet = up;
    return;
   }
+
+  // else walk through lowers then uppers
  }
- it.invlet = '`';
- //debugmsg("Couldn't find empty invlet");
+
+ char orig_lower_ch = ch;
+ char orig_upper_ch = std::toupper(ch);
+
+ for (int i = 0; i<52;++i)
+ {
+  // Go to next letter
+  if (ch=='z')
+   ch = 'a';
+  else if (ch=='Z')
+   ch = 'A';
+  else
+   ++ch;
+
+  // If made our way all the way around, switch case
+  if( ch == orig_upper_ch )
+   ch = orig_lower_ch;
+  else if( ch == orig_lower_ch )
+   ch = orig_upper_ch;
+
+  if( taken_letters.find( ch ) == taken_letters.end() )
+  {
+   // No match, can use.
+   newit.invlet = ch;
+   return;
+  }
+
+ }
+
+ // Ran out of letters.
+ newit.invlet = '`';
+ //debugmsg("Ran out of letters.");
 }

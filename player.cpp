@@ -160,9 +160,7 @@ player& player::operator= (const player & rhs)
 
  inv_sorted = rhs.inv_sorted;
 
- inv.clear();
- for (int i = 0; i < rhs.inv.size(); i++)
-  inv.add_stack(rhs.inv.const_stack(i));
+ inv = rhs.inv;
 
  last_item = rhs.last_item;
  styles = rhs.styles;

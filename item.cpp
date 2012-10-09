@@ -160,7 +160,7 @@ item item::in_its_container(std::vector<itype*> *itypes)
 
 bool item::invlet_is_okay() const
 {
- return ((invlet >= 'a' && invlet <= 'z') || (invlet >= 'A' && invlet <= 'Z'));
+ return ((invlet >= 'a' && invlet <= 'z') || (invlet >= 'A' && invlet <= 'Z') || invlet == ':');
 }
 
 bool item::stacks_with(item rhs)

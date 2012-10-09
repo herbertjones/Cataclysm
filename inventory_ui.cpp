@@ -106,7 +106,7 @@ char game::inv(std::string title)
  char ch = '.';
  int start = 0, cur_it;
  u.sort_inv();
- u.inv.restack(&u);
+ u.inv.restack();
  std::vector<char> null_vector;
  print_inv_statics(this, w_inv, title, null_vector);
 // Gun, ammo, weapon, armor, food, tool, book, other
@@ -169,7 +169,7 @@ char game::inv(std::string title)
 std::vector<item> game::multidrop()
 {
  u.sort_inv();
- u.inv.restack(&u);
+ u.inv.restack();
  WINDOW* w_inv = newwin(25, 80, 0, 0);
  const int maxitems = 20;    // Number of items to show at one time.
  int dropping[u.inv.size()]; // Count of how many we'll drop from each stack

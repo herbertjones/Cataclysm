@@ -3193,27 +3193,27 @@ void player::process_active_items(game *g)
  }
  for (int i = 0; i < inv.size(); i++) {
   for (int j = 0; j < inv.stack_at(i).size(); j++) {
-   item *tmp_it = &(inv.stack_at(i)[j]);
-   if (tmp_it->is_artifact() && tmp_it->is_tool())
-    g->process_artifact(tmp_it, this);
-   if (tmp_it->active) {
-    tmp = dynamic_cast<it_tool*>(tmp_it->type);
-    (use.*tmp->use)(g, this, tmp_it, true);
+   item & tmp_it = inv.stack_item(i,j);
+   if (tmp_it.is_artifact() && tmp_it.is_tool())
+    g->process_artifact(&tmp_it, this);
+   if (tmp_it.active) {
+    tmp = dynamic_cast<it_tool*>(tmp_it.type);
+    (use.*tmp->use)(g, this, &tmp_it, true);
     if (tmp->turns_per_charge > 0 && int(g->turn) % tmp->turns_per_charge == 0)
-    tmp_it->charges--;
-    if (tmp_it->charges <= 0) {
-     (use.*tmp->use)(g, this, tmp_it, false);
+    tmp_it.charges--;
+    if (tmp_it.charges <= 0) {
+     (use.*tmp->use)(g, this, &tmp_it, false);
      if (tmp->revert_to == itm_null) {
       if (inv.stack_at(i).size() == 1) {
        inv.remove_stack(i);
        i--;
        j = 0;
       } else {
-       inv.stack_at(i).erase(inv.stack_at(i).begin() + j);
+       inv.erase_item(i, j);
        j--;
       }
      } else
-      tmp_it->type = g->itypes[tmp->revert_to];
+      tmp_it.type = g->itypes[tmp->revert_to];
     }
    }
   }
@@ -3440,11 +3440,11 @@ int player::butcher_factor()
  int lowest_factor = 999;
  for (int i = 0; i < inv.size(); i++) {
   for (int j = 0; j < inv.stack_at(i).size(); j++) {
-   item *cur_item = &(inv.stack_at(i)[j]);
-   if (cur_item->damage_cut() >= 10 && !cur_item->has_flag(IF_SPEAR)) {
-    int factor = cur_item->volume() * 5 - cur_item->weight() * 1.5 -
-                 cur_item->damage_cut();
-    if (cur_item->damage_cut() <= 20)
+   item & cur_item = inv.stack_item(i,j);
+   if (cur_item.damage_cut() >= 10 && !cur_item.has_flag(IF_SPEAR)) {
+    int factor = cur_item.volume() * 5 - cur_item.weight() * 1.5 -
+                 cur_item.damage_cut();
+    if (cur_item.damage_cut() <= 20)
      factor *= 2;
     if (factor < lowest_factor)
      lowest_factor = factor;
@@ -3587,20 +3587,9 @@ bool player::has_watertight_container()
  return false;
 }
 
-bool player::has_weapon_or_armor(char let)
-{
- if (weapon().invlet == let)
-  return true;
- for (int i = 0; i < worn_items().size(); i++) {
-  if (worn_items()[i].invlet == let)
-   return true;
- }
- return false;
-}
-
 bool player::has_item(char let)
 {
- return (has_weapon_or_armor(let) || inv.index_by_letter(let) != -1);
+ return (inv.has_weapon_or_armor(let) || inv.index_by_letter(let) != -1);
 }
 
 bool player::has_item(item *it)
@@ -3866,7 +3855,7 @@ bool player::eat(game *g, int index)
     g->add_msg("%c - an empty %s", inv[which].invlet,
                                    inv[which].tname(g).c_str());
    if (inv.stack_at(which).size() > 0)
-    inv.restack(this);
+    inv.restack();
    inv_sorted = false;
   }
  }

@@ -15,7 +15,41 @@ item& inventory::operator[] (int i)
  return items[i][0];
 }
 
-std::vector<item>& inventory::stack_at(int i)
+item& inventory::stack_item(int i, int j)
+{
+ if (i < items.size() ) {
+  std::vector<item> & stack = items[i];
+  if (j < stack.size() ) {
+   return stack[j];
+  }
+  else
+   debugmsg("Attempted to access item (%d,%d) in an inventory (stack size %d)",
+             i, j, stack.size());
+ }
+ else
+  debugmsg("Attempted to access stack %d in an inventory (size %d)",
+           i, items.size());
+ return nullitem;
+}
+
+void inventory::erase_item(int i, int j)
+{
+ if (i < items.size() ) {
+  std::vector<item> & stack = items[i];
+  if (j < stack.size() ) {
+   stack.erase(stack.begin()+j);
+   return;
+  }
+  else
+   debugmsg("Attempted to erase item (%d,%d) in an inventory (stack size %d)",
+             i, j, stack.size());
+ }
+ else
+  debugmsg("Attempted to erase item from stack %d in an inventory (size %d)",
+           i, items.size());
+}
+
+const std::vector<item> & inventory::stack_at(int i) const
 {
  if (i < 0 || i > items.size()) {
   debugmsg("Attempted to access stack %d in an inventory (size %d)",
@@ -25,7 +59,7 @@ std::vector<item>& inventory::stack_at(int i)
  return items[i];
 }
 
-std::vector<item> inventory::const_stack(int i) const
+const std::vector<item>& inventory::const_stack(int i) const
 {
  if (i < 0 || i > items.size()) {
   debugmsg("Attempted to access stack %d in an inventory (size %d)",
@@ -64,9 +98,7 @@ inventory& inventory::operator= (const inventory &rhs)
  if (this == &rhs)
   return *this; // No self-assignment
 
- clear();
- for (int i = 0; i < rhs.size(); i++)
-  items.push_back(rhs.const_stack(i));
+ items = rhs.items;
  weapon_ = rhs.weapon_;
  worn_ = rhs.worn_;
  return *this;
@@ -118,82 +150,87 @@ void inventory::clear()
  items.clear();
 }
 
-void inventory::add_stack(const std::vector<item> newits)
+void inventory::add_stack(const std::vector<item> & newits)
 {
  for (int i = 0; i < newits.size(); i++)
-  add_item(newits[i], true);
+  add_item(newits[i]);
 }
 
-void inventory::push_back(std::vector<item> newits)
+void inventory::push_back(const std::vector<item> & newits)
 {
  add_stack(newits);
 }
  
-void inventory::add_item(item newit, bool keep_invlet)
+void inventory::add_item(item newit)
 {
- if (keep_invlet && !newit.invlet_is_okay())
-  assign_empty_invlet(newit); // Keep invlet is true, but invlet is invalid!
-
  if (newit.is_style())
   return; // Styles never belong in our inventory.
- for (int i = 0; i < items.size(); i++) {
-  if (items[i][0].stacks_with(newit)) {
-/*
-   if (keep_invlet)
-    items[i][0].invlet = newit.invlet;
-   else
-*/
-    newit.invlet = items[i][0].invlet;
-   items[i].push_back(newit);
-   return;
-  } else if (keep_invlet && items[i][0].invlet == newit.invlet)
-   assign_empty_invlet(items[i][0]);
+
+ bool collides = false;
+
+ // Check if stacks
+ for( std::vector< std::vector<item> >::iterator stack_it = items.begin(),
+      stack_it_end = items.end(); stack_it != stack_it_end; ++stack_it ) {
+  for( std::vector<item>::iterator it = stack_it->begin(), end = stack_it->end();
+        it != end; ++it ) {
+   if (it->stacks_with(newit)) {
+    newit.invlet = it->invlet;
+    stack_it->push_back(newit);
+    return;
+   }
+   if( it->invlet == newit.invlet )
+    collides = true;
+  }
  }
- if (!newit.invlet_is_okay() || index_by_letter(newit.invlet) != -1) 
+
+ // Use existing letter if possible, else pick a new one.
+ if( collides || !newit.invlet_is_okay() )
   assign_empty_invlet(newit);
 
+ // Add new stack
  std::vector<item> newstack;
  newstack.push_back(newit);
  items.push_back(newstack);
 }
 
-void inventory::add_item_keep_invlet(item newit)
-{
- add_item(newit, true);
-}
-
-void inventory::push_back(item newit)
+void inventory::add_item_keep_invlet(const item & newit)
 {
  add_item(newit);
 }
 
-void inventory::restack(player *p)
+void inventory::push_back(const item & newit)
 {
- inventory tmp;
- for (int i = 0; i < size(); i++) {
-  for (int j = 0; j < items[i].size(); j++)
-   tmp.add_item(items[i][j]);
- }
- clear();
- if (p) {
-// Doing it backwards will preserve older items' invlet
-/*
-  for (int i = tmp.size() - 1; i >= 0; i--) {
-   if (p->has_weapon_or_armor(tmp[i].invlet)) 
-    tmp.assign_empty_invlet(tmp[i], p);
-  }
-*/
-  for (int i = 0; i < tmp.size(); i++) {
-   if (!tmp[i].invlet_is_okay() || p->has_weapon_or_armor(tmp[i].invlet)) {
-    //debugmsg("Restacking item %d (invlet %c)", i, tmp[i].invlet);
-    tmp.assign_empty_invlet(tmp[i], p);
-    for (int j = 1; j < tmp.stack_at(i).size(); j++)
-     tmp.stack_at(i)[j].invlet = tmp[i].invlet;
+ add_item(newit);
+}
+
+void inventory::restack()
+{
+ // Move items over to temp location, so we can fill it back up without
+ // affecting algorithms like has_weapon_or_armor.
+ std::vector< std::vector<item> > tmp;
+ tmp.swap( items );
+
+ for ( std::vector< std::vector<item> >::iterator outer_it = tmp.begin(),
+   outer_it_end = tmp.end(); outer_it != outer_it_end; ++outer_it ) {
+  if (!outer_it->empty()) { // Skip empty
+   item & fit = outer_it->at(0);
+   if( !fit.invlet_is_okay() || has_weapon_or_armor(fit.invlet)) {
+    assign_empty_invlet(fit);
+    std::vector<item>::iterator it = outer_it->begin(),
+                            it_end = outer_it->end();
+    ++it; // skip first we just did
+    for( ; it != it_end; ++it ) {
+     it->invlet = fit.invlet; // Update rest in stack
+    }
    }
+
+   // Now we can move the stack back over
+   std::vector<item> empty_stack;
+   std::vector< std::vector<item> >::iterator toswap = items.insert(
+                                             items.end(), empty_stack );
+   outer_it->swap( *toswap );
   }
  }
- for (int i = 0; i < tmp.size(); i++)
-  items.push_back(tmp.stack_at(i));
 }
 
 void inventory::form_from_map(game *g, point origin, int range)
@@ -453,6 +490,7 @@ const item& inventory::weapon() const
 
 void inventory::set_weapon(const item & w)
 {
+ // TODO: Make sure inventory letter sane.
  weapon_ = w;
 }
 
@@ -503,11 +541,24 @@ void inventory::clear_worn_items()
  worn_.clear();
 }
 
-void inventory::assign_empty_invlet(item &it, player *p)
+bool inventory::has_weapon_or_armor(char let)
+{
+ if (weapon_.invlet == let)
+  return true;
+
+ for( std::vector<item>::iterator it = worn_.begin(),
+             it_end = worn_.end(); it != it_end; ++it )
+  if (it->invlet == let)
+   return true;
+
+ return false;
+}
+
+void inventory::assign_empty_invlet(item &it)
 {
  for (int ch = 'a'; ch <= 'z'; ch++) {
   //debugmsg("Trying %c", ch);
-  if (index_by_letter(ch) == -1 && (!p || !p->has_weapon_or_armor(ch))) {
+  if (index_by_letter(ch) == -1 && has_weapon_or_armor(ch)) {
    it.invlet = ch;
    //debugmsg("Using %c", ch);
    return;
@@ -515,7 +566,7 @@ void inventory::assign_empty_invlet(item &it, player *p)
  }
  for (int ch = 'A'; ch <= 'Z'; ch++) {
   //debugmsg("Trying %c", ch);
-  if (index_by_letter(ch) == -1 && (!p || !p->has_weapon_or_armor(ch))) {
+  if (index_by_letter(ch) == -1 && has_weapon_or_armor(ch)) {
    //debugmsg("Using %c", ch);
    it.invlet = ch;
    return;

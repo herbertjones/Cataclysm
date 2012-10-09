@@ -246,7 +246,6 @@ public:
  int  charges_of(itype_id it);
 
  bool has_watertight_container();
- bool has_weapon_or_armor(char let);	// Has an item with invlet let
  bool has_item(char let);		// Has an item with invlet let
  bool has_item(item *it);		// Has a specific item
  bool has_mission_item(int mission_id);	// Has item with mission_id

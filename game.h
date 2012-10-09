@@ -87,8 +87,6 @@ class game
   bool do_turn();
   void draw();
   void draw_ter(int posx = -999, int posy = -999);
-  void advance_nextinv();	// Increment the next inventory letter
-  void decrease_nextinv();	// Decrement the next inventory letter
   void vadd_msg(const char* msg, va_list ap );
   void add_msg(const char* msg, ...);
   void add_msg_if_player(player *p, const char* msg, ...);
@@ -203,7 +201,6 @@ class game
   calendar turn;
   signed char temperature;              // The air temperature
   weather_type weather;			// Weather pattern--SEE weather.h
-  char nextinv;	// Determines which letter the next inv item will have
   overmap cur_om;
   map m;
   int levx, levy, levz;	// Placement inside the overmap

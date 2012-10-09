@@ -752,17 +752,13 @@ void iuse::scissors(game *g, player *p, item *it, bool t)
   g->add_msg_if_player(p,"You cut the %s into %d smaller pieces.",
              (is_string ? "string" : "rope"), pieces);
   itype_id piece_id = (is_string ? itm_string_6 : itm_rope_6);
-  item string(g->itypes[piece_id], int(g->turn), g->nextinv);
+  item string(g->itypes[piece_id], int(g->turn));
   p->i_rem(ch);
   bool drop = false;
   for (int i = 0; i < pieces; i++) {
-   int iter = 0;
-   while (p->has_item(string.invlet)) {
-    string.invlet = g->nextinv;
-    g->advance_nextinv();
-    iter++;
-   }
-   if (!drop && (iter == 52 || p->volume_carried() >= p->volume_capacity()))
+   if( !drop ) // Check we have inventory letter
+    drop = !p->give_inventory_letter(string);
+   if (!drop && (p->volume_carried() >= p->volume_capacity()))
     drop = true;
    if (drop)
     g->m.add_item(p->posx, p->posy, string);
@@ -792,17 +788,13 @@ void iuse::scissors(game *g, player *p, item *it, bool t)
  }
  g->add_msg_if_player(p,"You slice the %s into %d rag%s.", cut->tname().c_str(), count,
             (count == 1 ? "" : "s"));
- item rag(g->itypes[itm_rag], int(g->turn), g->nextinv);
+ item rag(g->itypes[itm_rag], int(g->turn));
  p->i_rem(ch);
  bool drop = false;
  for (int i = 0; i < count; i++) {
-  int iter = 0;
-  while (p->has_item(rag.invlet) && iter < 52) {
-   rag.invlet = g->nextinv;
-   g->advance_nextinv();
-   iter++;
-  }
-  if (!drop && (iter == 52 || p->volume_carried() >= p->volume_capacity()))
+  if( !drop ) // Check we have inventory letter
+   drop = !p->give_inventory_letter(rag);
+  if (!drop && (p->volume_carried() >= p->volume_capacity()))
    drop = true;
   if (drop)
    g->m.add_item(p->posx, p->posy, rag);
@@ -891,10 +883,10 @@ void iuse::hammer(game *g, player *p, item *it, bool t)
   return;
  }
  p->moves -= 500;
- item it_nails(g->itypes[itm_nail], 0, g->nextinv);
+ item it_nails(g->itypes[itm_nail], 0);
  it_nails.charges = nails;
  g->m.add_item(p->posx, p->posy, it_nails);
- item board(g->itypes[itm_2x4], 0, g->nextinv);
+ item board(g->itypes[itm_2x4], 0);
  for (int i = 0; i < boards; i++)
   g->m.add_item(p->posx, p->posy, board);
  g->m.ter(dirx, diry) = newter;
@@ -1136,10 +1128,10 @@ void iuse::crowbar(game *g, player *p, item *it, bool t)
    return;
   }
   p->moves -= 500;
-  item it_nails(g->itypes[itm_nail], 0, g->nextinv);
+  item it_nails(g->itypes[itm_nail], 0);
   it_nails.charges = nails;
   g->m.add_item(p->posx, p->posy, it_nails);
-  item board(g->itypes[itm_2x4], 0, g->nextinv);
+  item board(g->itypes[itm_2x4], 0);
   for (int i = 0; i < boards; i++)
    g->m.add_item(p->posx, p->posy, board);
   g->m.ter(dirx, diry) = newter;

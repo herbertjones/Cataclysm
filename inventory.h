@@ -35,6 +35,7 @@ class inventory
   void push_back(const item & newit);
   void add_item_keep_invlet(const item & newit);
   void add_item (item newit);
+  bool give_inventory_letter(item &);
 
 /* Check all items for proper stacking, rearranging as needed
  * game pointer is not necessary, but if supplied, will ensure no overlap with

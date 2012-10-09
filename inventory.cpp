@@ -554,11 +554,48 @@ bool inventory::has_weapon_or_armor(char let)
  return false;
 }
 
+bool inventory::give_inventory_letter(item & newit)
+{
+ if (newit.is_style())
+  return false; // Styles never belong in our inventory.
+
+ bool collides = false;
+ char orig_char = newit.invlet;
+
+ // Check if stacks
+ for( std::vector< std::vector<item> >::iterator stack_it = items.begin(),
+      stack_it_end = items.end(); stack_it != stack_it_end; ++stack_it ) {
+  for( std::vector<item>::iterator it = stack_it->begin(), end = stack_it->end();
+        it != end; ++it ) {
+   if (it->stacks_with(newit)) {
+    newit.invlet = it->invlet;
+    return true;
+   }
+   if( it->invlet == newit.invlet )
+   {
+    collides = true;
+   }
+  }
+ }
+
+ // Use existing letter if possible, else pick a new one.
+ if( collides || !newit.invlet_is_okay() )
+ {
+  assign_empty_invlet(newit);
+ }
+
+ if( newit.invlet == '`' ) {
+  newit.invlet = orig_char;
+  return false;
+ }
+ return true;
+}
+
 void inventory::assign_empty_invlet(item &it)
 {
  for (int ch = 'a'; ch <= 'z'; ch++) {
   //debugmsg("Trying %c", ch);
-  if (index_by_letter(ch) == -1 && has_weapon_or_armor(ch)) {
+  if (index_by_letter(ch) == -1 && !has_weapon_or_armor(ch)) {
    it.invlet = ch;
    //debugmsg("Using %c", ch);
    return;
@@ -566,7 +603,7 @@ void inventory::assign_empty_invlet(item &it)
  }
  for (int ch = 'A'; ch <= 'Z'; ch++) {
   //debugmsg("Trying %c", ch);
-  if (index_by_letter(ch) == -1 && has_weapon_or_armor(ch)) {
+  if (index_by_letter(ch) == -1 && !has_weapon_or_armor(ch)) {
    //debugmsg("Using %c", ch);
    it.invlet = ch;
    return;

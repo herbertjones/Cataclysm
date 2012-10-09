@@ -84,7 +84,6 @@ void game::setup()
  z.reserve(1000); // Reserve some space
 
 // Even though we may already have 'd', nextinv will be incremented as needed
- nextinv = 'd';
  next_npc_id = 1;
  next_faction_id = 1;
  next_mission_id = 1;
@@ -1727,6 +1726,7 @@ void game::load(std::string name)
  u.set_weapon( item(itypes[0], 0) );
  int tmpturn, tmpspawn, tmpnextweather, tmprun, tmptar, tmpweather, tmptemp,
      comx, comy;
+ char nextinv = 0; // Keep save format
  fin >> tmpturn >> tmptar >> tmprun >> mostseen >> nextinv >> next_npc_id >>
         next_faction_id >> next_mission_id >> tmpspawn >> tmpnextweather >>
         tmpweather >> tmptemp >> levx >> levy >> levz >> comx >> comy;
@@ -1814,6 +1814,7 @@ void game::save()
  masterfile << "save/master.gsav";
  fout.open(playerfile.str().c_str());
 // First, write out basic game state information.
+ char nextinv = 0; // Keep save format
  fout << int(turn) << " " << int(last_target) << " " << int(run_mode) << " " <<
          mostseen << " " << nextinv << " " << next_npc_id << " " <<
          next_faction_id << " " << next_mission_id << " " << int(nextspawn) <<
@@ -1870,25 +1871,6 @@ void game::save()
  //MAPBUFFER.save();
 }
 
-void game::advance_nextinv()
-{
- if (nextinv == 'z')
-  nextinv = 'A';
- else if (nextinv == 'Z')
-  nextinv = 'a';
- else
-  nextinv++;
-}
-
-void game::decrease_nextinv()
-{
- if (nextinv == 'a')
-  nextinv = 'Z';
- else if (nextinv == 'A')
-  nextinv = 'z';
- else
-  nextinv--;
-}
 
 void game::vadd_msg(const char* msg, va_list ap)
 {
@@ -4755,28 +4737,16 @@ void game::pickup(int posx, int posy, int min)
 // Few item here, just get it
  } else if ((from_veh ? veh->parts[veh_part].items.size() :
                         m.i_at(posx, posy).size()          ) <= min) {
-  int iter = 0;
   item newit = from_veh ? veh->parts[veh_part].items[0] : m.i_at(posx, posy)[0];
   if (newit.made_of(LIQUID)) {
    add_msg("You can't pick up a liquid!");
    return;
   }
-  if (newit.invlet == 0) {
-   newit.invlet = nextinv;
-   advance_nextinv();
-  }
-  while (iter < 52 && u.has_item(newit.invlet) &&
-         !u.i_at(newit.invlet).stacks_with(newit)) {
-   newit.invlet = nextinv;
-   iter++;
-   advance_nextinv();
-  }
-  if (iter == 52) {
+  if( !u.give_inventory_letter(newit) ) {
    add_msg("You're carrying too many items!");
    return;
   } else if (u.weight_carried() + newit.weight() > u.weight_capacity()) {
    add_msg("The %s is too heavy!", newit.tname(this).c_str());
-   decrease_nextinv();
   } else if (u.volume_carried() + newit.volume() > u.volume_capacity()) {
    if (u.is_armed()) {
     if (!u.weapon().has_flag(IF_NO_UNWIELD)) {
@@ -4799,12 +4769,10 @@ void game::pickup(int posx, int posy, int min)
       u.wield(this, u.inv.size() - 1);
       u.moves -= 100;
       add_msg("Wielding %c - %s", newit.invlet, newit.tname(this).c_str());
-     } else
-      decrease_nextinv();
+     }
     } else {
      add_msg("There's no room in your inventory for the %s, and you can't\
  unwield your %s.", newit.tname(this).c_str(), u.weapon().tname(this).c_str());
-     decrease_nextinv();
     }
    } else {
     u.i_add(newit, this);
@@ -4851,7 +4819,7 @@ void game::pickup(int posx, int posy, int min)
  for (int i = 0; i < here.size(); i++)
   getitem[i] = false;
  char ch = ' ';
- int start = 0, cur_it, iter;
+ int start = 0, cur_it;
  int new_weight = u.weight_carried(), new_volume = u.volume_carried();
  bool update = true;
  mvwprintw(w_pickup, 0,  0, "PICK UP");
@@ -4956,21 +4924,12 @@ void game::pickup(int posx, int posy, int min)
  int curmit = 0;
  bool got_water = false;	// Did we try to pick up water?
  for (int i = 0; i < here.size(); i++) {
-  iter = 0;
 // This while loop guarantees the inventory letter won't be a repeat. If it
 // tries all 52 letters, it fails and we don't pick it up.
   if (getitem[i] && here[i].made_of(LIQUID))
    got_water = true;
   else if (getitem[i]) {
-   iter = 0;
-   while (iter < 52 && (here[i].invlet == 0 ||
-                        (u.has_item(here[i].invlet) &&
-                         !u.i_at(here[i].invlet).stacks_with(here[i]))) ) {
-    here[i].invlet = nextinv;
-    iter++;
-    advance_nextinv();
-   }
-   if (iter == 52) {
+   if( !u.give_inventory_letter(here[i]) ) {
     add_msg("You're carrying too many items!");
     werase(w_pickup);
     wrefresh(w_pickup);
@@ -4978,7 +4937,6 @@ void game::pickup(int posx, int posy, int min)
     return;
    } else if (u.weight_carried() + here[i].weight() > u.weight_capacity()) {
     add_msg("The %s is too heavy!", here[i].tname(this).c_str());
-    decrease_nextinv();
    } else if (u.volume_carried() + here[i].volume() > u.volume_capacity()) {
     if (u.is_armed()) {
      if (!u.weapon().has_flag(IF_NO_UNWIELD)) {
@@ -5004,12 +4962,10 @@ void game::pickup(int posx, int posy, int min)
        curmit--;
        u.moves -= 100;
        add_msg("Wielding %c - %s", u.weapon().invlet, u.weapon().tname(this).c_str());
-      } else
-       decrease_nextinv();
+      }
      } else {
       add_msg("There's no room in your inventory for the %s, and you can't\
   unwield your %s.", here[i].tname(this).c_str(), u.weapon().tname(this).c_str());
-      decrease_nextinv();
      }
     } else {
      u.i_add(here[i], this);
@@ -5780,20 +5736,16 @@ void game::unload()
   std::vector<item> new_contents;	// In case we put stuff back
   while (u.weapon().contents.size() > 0) {
    item content = u.weapon().contents[0];
-   int iter = 0;
+
 // Pick an inventory item for the contents
-   while ((content.invlet == 0 || u.has_item(content.invlet)) && iter < 52) {
-    content.invlet = nextinv;
-    advance_nextinv();
-    iter++;
-   }
+   bool drop_item = !u.give_inventory_letter(content);
    if (content.made_of(LIQUID)) {
     if (!handle_liquid(content, false, false))
      new_contents.push_back(content);// Put it back in (we canceled)
    } else {
     if (u.volume_carried() + content.volume() <= u.volume_capacity() &&
         u.weight_carried() + content.weight() <= u.weight_capacity() &&
-        iter < 52) {
+        !drop_item) {
      add_msg("You put the %s in your inventory.", content.tname(this).c_str());
      u.i_add(content, this);
     } else {
@@ -5831,12 +5783,7 @@ void game::unload()
  else
   newam = item(itypes[default_ammo(u.weapon().ammo_type())], turn);
  while (u.weapon().charges > 0) {
-  int iter = 0;
-  while ((newam.invlet == 0 || u.has_item(newam.invlet)) && iter < 52) {
-   newam.invlet = nextinv;
-   advance_nextinv();
-   iter++;
-  }
+  bool drop_item = !u.give_inventory_letter(newam);
   if (newam.made_of(LIQUID))
    newam.charges = u.weapon().charges;
   u.weapon().charges -= newam.charges;
@@ -5845,7 +5792,7 @@ void game::unload()
    u.weapon().charges = 0;
   }
   if (u.weight_carried() + newam.weight() < u.weight_capacity() &&
-      u.volume_carried() + newam.volume() < u.volume_capacity() && iter < 52) {
+      u.volume_carried() + newam.volume() < u.volume_capacity() && !drop_item) {
    if (newam.made_of(LIQUID)) {
     if (!handle_liquid(newam, false, false))
      u.weapon().charges += newam.charges;	// Put it back in

@@ -4797,6 +4797,11 @@ void player::add_worn_item(const item & it)
  inv.add_worn_item(it);
 }
 
+bool player::give_inventory_letter(item & newit)
+{
+ return inv.give_inventory_letter(newit);
+}
+
 std::string player::weapname(bool charges)
 {
  if (!(weapon().is_tool() &&

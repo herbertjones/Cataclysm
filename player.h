@@ -254,6 +254,13 @@ public:
  item & weapon();
  void set_weapon(const item &);
 
+ const std::vector <item> & worn_items() const;
+ void remove_worn_items(const std::vector<int>&);
+ void remove_worn_item(int);
+ item& worn_item_at(int);
+ void add_worn_item(const item &);
+ bool give_inventory_letter(item &);
+
 // ---------------VALUES-----------------
  int id;	// A unique ID number, assigned by the game class
  int posx, posy;
@@ -307,11 +314,6 @@ public:
 
  std::vector <disease> illness;
  std::vector <addiction> addictions;
- const std::vector <item> & worn_items() const;
- void remove_worn_items(const std::vector<int>&);
- void remove_worn_item(int);
- item& worn_item_at(int);
- void add_worn_item(const item &);
 };
 
 #endif

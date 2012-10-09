@@ -1098,20 +1098,16 @@ void game::complete_craft()
 
   // Set up the new item, and pick an inventory letter
  int iter = 0;
- item newit(itypes[making->result], turn, nextinv);
+ item newit(itypes[making->result], turn);
  if (!newit.craft_has_charges())
   newit.charges = 0;
- do {
-  newit.invlet = nextinv;
-  advance_nextinv();
-  iter++;
- } while (u.has_item(newit.invlet) && iter < 52);
+ bool drop = !u.give_inventory_letter(newit);
  //newit = newit.in_its_container(&itypes);
  if (newit.made_of(LIQUID))
   handle_liquid(newit, false, false);
  else {
 // We might not have space for the item
-  if (iter == 52 || u.volume_carried()+newit.volume() > u.volume_capacity()) {
+  if (drop || u.volume_carried()+newit.volume() > u.volume_capacity()) {
    add_msg("There's no room in your inventory for the %s, so you drop it.",
              newit.tname().c_str());
    m.add_item(u.posx, u.posy, newit);

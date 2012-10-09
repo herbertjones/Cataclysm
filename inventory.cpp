@@ -553,24 +553,25 @@ bool inventory::give_inventory_letter(item & newit)
  bool reassign = false;
  char orig_char = newit.invlet;
 
+ // Check if stacks. Note: this is very important to do first, as
+ // bypassing stacking for any reason could return a `, which means we
+ // are out of letters. Doing this first will return the proper stack
+ // letter if a stack matches.
+ for( std::vector< std::vector<item> >::iterator stack_it = items.begin(),
+   stack_it_end = items.end(); stack_it != stack_it_end; ++stack_it ) {
+  item & it = stack_it->at(0);
+  if (it.stacks_with(newit)) {
+   newit.invlet = it.invlet;
+   return true;
+  }
+  if( it.invlet == newit.invlet )
+   reassign = true;
+ }
+
  if(newit.invlet_is_okay())
  {
-  if( weapon_.invlet == newit.invlet )
+  if(!reassign && weapon_.invlet == newit.invlet )
    reassign = true;
-
-  // Check if stacks
-  if (!reassign) {
-   for( std::vector< std::vector<item> >::iterator stack_it = items.begin(),
-         stack_it_end = items.end(); stack_it != stack_it_end; ++stack_it ) {
-    item & it = stack_it->at(0);
-    if (it.stacks_with(newit)) {
-     newit.invlet = it.invlet;
-     return true;
-    }
-    if( it.invlet == newit.invlet )
-     reassign = true;
-   }
-  }
 
   if (!reassign) {
    for( std::vector<item>::iterator it = worn_.begin(),

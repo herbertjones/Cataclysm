@@ -26,6 +26,7 @@ map::map()
   my_MAPSIZE = 2;
  else
   my_MAPSIZE = MAPSIZE;
+ veh_in_active_range = true;
 }
 
 map::map(std::vector<itype*> *itptr, std::vector<itype_id> (*miptr)[num_itloc],
@@ -42,6 +43,7 @@ map::map(std::vector<itype*> *itptr, std::vector<itype_id> (*miptr)[num_itloc],
   my_MAPSIZE = MAPSIZE;
  for (int n = 0; n < my_MAPSIZE * my_MAPSIZE; n++)
   grid[n] = NULL;
+ veh_in_active_range = true;
 }
 
 map::~map()
@@ -50,30 +52,15 @@ map::~map()
 
 vehicle* map::veh_at(int x, int y, int &part_num)
 {
- if (!inbounds(x, y))
+ // This function is called A LOT. Move as much out of here as possible.
+ if (!veh_in_active_range || !inbounds(x, y))
   return NULL;    // Out-of-bounds - null vehicle
- int nonant = int(x / SEEX) + int(y / SEEY) * my_MAPSIZE;
-
- x %= SEEX;
- y %= SEEY;
-
- // must check 3x3 map chunks, as vehicle part may span to neighbour chunk
- // we presume that vehicles don't intersect (they shouldn't by any means)
- for (int mx = -1; mx <= 1; mx++) {
-  for (int my = -1; my <= 1; my++) {
-   int nonant1 = nonant + mx + my * my_MAPSIZE;
-   if (nonant1 < 0 || nonant1 >= my_MAPSIZE * my_MAPSIZE)
-    continue; // out of grid
-   for (int i = 0; i < grid[nonant1]->vehicles.size(); i++) {
-    vehicle *veh = &(grid[nonant1]->vehicles[i]);
-    int part = veh->part_at (x - (veh->posx + mx * SEEX),
-                             y - (veh->posy + my * SEEY));
-    if (part >= 0) {
-     part_num = part;
-     return veh;
-    }
-   }
-  }
+ std::pair<int,int> point(x,y);
+ std::map< std::pair<int,int>, std::pair<vehicle*,int> >::iterator it;
+ if ((it = veh_cached_parts.find(point)) != veh_cached_parts.end())
+ {
+  part_num = it->second.second;
+  return it->second.first;
  }
  return NULL;
 }
@@ -83,6 +70,46 @@ vehicle* map::veh_at(int x, int y)
  int part = 0;
  vehicle *veh = veh_at(x, y, part);
  return veh;
+}
+
+void map::reset_vehicle_cache()
+{
+ // Cache all vehicles
+ veh_cached_parts.clear();
+ for( std::set<vehicle*>::iterator veh = vehicle_list.begin(),
+   it_end = vehicle_list.end(); veh != it_end; ++veh ) {
+  update_vehicle_cache(*veh, true);
+ }
+}
+
+void map::update_vehicle_cache(vehicle * veh, bool brand_new)
+{
+ if(brand_new)
+  veh_in_active_range = true; // will reset on shift if false
+ else { // Existing must be cleared
+  std::map< std::pair<int,int>, std::pair<vehicle*,int> >::iterator it =
+             veh_cached_parts.begin(), end = veh_cached_parts.end(), tmp;
+  while( it != end ) {
+   if( it->second.first == veh ) {
+    tmp = it;
+    ++it;
+    veh_cached_parts.erase( tmp );
+   }else
+    ++it;
+  }
+ }
+ // Get parts
+ std::vector<vehicle_part> & parts = veh->parts;
+ const int gx = veh->global_x();
+ const int gy = veh->global_y();
+ int partid = 0;
+ for( std::vector<vehicle_part>::iterator it = parts.begin(),
+   end = parts.end(); it != end; ++it, ++partid ) {
+  const int px = gx + it->precalc_dx[0];
+  const int py = gy + it->precalc_dy[0];
+  veh_cached_parts.insert( std::make_pair( std::make_pair(px,py),
+                                        std::make_pair(veh,partid) ));
+ }
 }
 
 void map::board_vehicle(game *g, int x, int y, player *p)
@@ -155,7 +182,9 @@ void map::destroy_vehicle (vehicle *veh)
  }
  int sm = veh->smx + veh->smy * my_MAPSIZE;
  for (int i = 0; i < grid[sm]->vehicles.size(); i++) {
-  if (&(grid[sm]->vehicles[i]) == veh) {
+  if (grid[sm]->vehicles[i] == veh) {
+   vehicle_list.erase(veh);
+   reset_vehicle_cache();
    grid[sm]->vehicles.erase (grid[sm]->vehicles.begin() + i);
    return;
   }
@@ -194,8 +223,8 @@ bool map::displace_vehicle (game *g, int &x, int &y, int dx, int dy, bool test=f
  // first, let's find our position in current vehicles vector
  int our_i = -1;
  for (int i = 0; i < grid[src_na]->vehicles.size(); i++) {
-  if (grid[src_na]->vehicles[i].posx == srcx &&
-      grid[src_na]->vehicles[i].posy == srcy) {
+  if (grid[src_na]->vehicles[i]->posx == srcx &&
+      grid[src_na]->vehicles[i]->posy == srcy) {
    our_i = i;
    break;
   }
@@ -205,7 +234,7 @@ bool map::displace_vehicle (game *g, int &x, int &y, int dx, int dy, bool test=f
   return false;
  }
  // move the vehicle
- vehicle *veh = &(grid[src_na]->vehicles[our_i]);
+ vehicle *veh = grid[src_na]->vehicles[our_i];
  // don't let it go off grid
  if (!inbounds(x2, y2))
   veh->stop();
@@ -254,15 +283,17 @@ bool map::displace_vehicle (game *g, int &x, int &y, int dx, int dy, bool test=f
  veh->posx = dstx;
  veh->posy = dsty;
  if (src_na != dst_na) {
-  vehicle veh1 = *veh;
-  veh1.smx = int(x2 / SEEX);
-  veh1.smy = int(y2 / SEEY);
+  vehicle * veh1 = veh;
+  veh1->smx = int(x2 / SEEX);
+  veh1->smy = int(y2 / SEEY);
   grid[dst_na]->vehicles.push_back (veh1);
   grid[src_na]->vehicles.erase (grid[src_na]->vehicles.begin() + our_i);
  }
 
  x += dx;
  y += dy;
+
+ update_vehicle_cache(veh);
 
  bool was_update = false;
  if (need_update &&
@@ -291,7 +322,7 @@ void map::vehmove(game *g)
   for (int j = 0; j < my_MAPSIZE; j++) {
    int sm = i + j * my_MAPSIZE;
    for (int v = 0; v < grid[sm]->vehicles.size(); v++) {
-    vehicle *veh = &(grid[sm]->vehicles[v]);
+    vehicle *veh = grid[sm]->vehicles[v];
     // velocity is ability to make more one-tile steps per turn
     veh->gain_moves (abs (veh->velocity));
    }
@@ -307,7 +338,7 @@ void map::vehmove(game *g)
     int sm = i + j * my_MAPSIZE;
 
     for (int v = 0; v < grid[sm]->vehicles.size(); v++) {
-     vehicle *veh = &(grid[sm]->vehicles[v]);
+     vehicle *veh = grid[sm]->vehicles[v];
      bool pl_ctrl = veh->player_in_control(&g->u);
      while (!sm_change && veh->moves > 0 && veh->velocity != 0) {
       int x = veh->posx + i * SEEX;
@@ -628,9 +659,14 @@ bool map::trans(int x, int y)
   }
  } else
   tertr = terlist[ter(x, y)].flags & mfb(transparent);
- return tertr &&
-        (field_at(x, y).type == 0 ||	// Fields may obscure the view, too
-        fieldlist[field_at(x, y).type].transparent[field_at(x, y).density - 1]);
+ if( tertr )
+ {
+  field & f(field_at(x, y));
+  if(f.type == 0 || // Fields may obscure the view, too
+    fieldlist[f.type].transparent[f.density - 1]);
+  return true;
+ }
+ return false;
 }
 
 bool map::has_flag(t_flag flag, int x, int y)
@@ -1879,7 +1915,8 @@ void map::drawsq(WINDOW* w, player &u, int x, int y, bool invert,
     case 4: sym = '&'; break;
     case 5: sym = '+'; break;
    }
-  } else if (fieldlist[field_at(x, y).type].sym != '%') {
+  } else if (fieldlist[field_at(x, y).type].sym != '%' ||
+             i_at(x, y).size() > 0) {
    sym = fieldlist[field_at(x, y).type].sym;
    drew_field = false;
   }
@@ -2213,6 +2250,34 @@ void map::shift(game *g, int wx, int wy, int sx, int sy)
   g->u.posy -= sy * SEEY;
  }
 
+ // Shift vehicle cache
+ {
+  static const int ACTIVE_RANGE = MAPSIZE * SEEX / 2 + 1;
+  const int minx = g->u.posx - ACTIVE_RANGE;
+  const int maxx = g->u.posx + ACTIVE_RANGE;
+  const int miny = g->u.posy - ACTIVE_RANGE;
+  const int maxy = g->u.posy + ACTIVE_RANGE;
+  const int xOffset = sx * SEEX;
+  const int yOffset = sy * SEEY;
+  veh_in_active_range = false;
+
+  std::map< std::pair<int,int>, std::pair<vehicle*,int> > vcptmp;
+  for (std::map< std::pair<int,int>, std::pair<vehicle*,int> >::iterator
+        it = veh_cached_parts.begin(), end = veh_cached_parts.end();
+        it != end; ++it ) {
+   int newx = it->first.first - xOffset;
+   int newy = it->first.second - yOffset;
+   vcptmp.insert( std::make_pair( std::make_pair( newx, newy ),
+                                                        it->second ));
+   if( !veh_in_active_range &&
+         newx >= minx && newx <= maxx && newy >= miny && newy <= maxy ) {
+    veh_in_active_range = true;
+   }
+  }
+  veh_cached_parts.swap(vcptmp);
+ }
+
+
 // Shift the map sx submaps to the right and sy submaps down.
 // sx and sy should never be bigger than +/-1.
 // wx and wy are our position in the world, for saving/loading purposes.
@@ -2290,7 +2355,7 @@ void map::saven(overmap *om, unsigned int turn, int worldx, int worldy,
 {
  int n = gridx + gridy * my_MAPSIZE;
 
- if (grid[n]->ter[0][0] == t_null)
+ if ( !grid[n] || grid[n]->ter[0][0] == t_null)
   return;
  int abs_x = om->posx * OMAPX * 2 + worldx + gridx,
      abs_y = om->posy * OMAPY * 2 + worldy + gridy;
@@ -2311,9 +2376,19 @@ bool map::loadn(game *g, int worldx, int worldy, int gridx, int gridy)
  submap *tmpsub = MAPBUFFER.lookup_submap(absx, absy, g->cur_om.posz);
  if (tmpsub) {
   grid[gridn] = tmpsub;
-  for (int i = 0; i < grid[gridn]->vehicles.size(); i++) {
-   grid[gridn]->vehicles[i].smx = gridx;
-   grid[gridn]->vehicles[i].smy = gridy;
+
+  // Update vehicle data
+  for( std::vector<vehicle*>::iterator it = tmpsub->vehicles.begin(),
+        end = tmpsub->vehicles.end(); it != end; ++it ) {
+
+   // Only add if not tracking already.
+   if( vehicle_list.find( *it ) == vehicle_list.end() ) {
+    // gridx/y not correct. TODO: Fix
+    (*it)->smx = gridx;
+    (*it)->smy = gridy;
+    vehicle_list.insert(*it);
+    update_vehicle_cache(*it);
+   }
   }
  } else { // It doesn't exist; we must generate it!
   map tmp_map(itypes, mapitems, traps);
@@ -2326,8 +2401,6 @@ bool map::loadn(game *g, int worldx, int worldy, int gridx, int gridy)
    newmapx = worldx + gridx;
   if (worldy + gridy < 0)
    newmapy = worldy + gridy;
-  if (worldx + gridx < 0)
-   newmapx = worldx + gridx;
   tmp_map.generate(g, &(g->cur_om), newmapx, newmapy, int(g->turn));
   return false;
  }
@@ -2337,10 +2410,10 @@ bool map::loadn(game *g, int worldx, int worldy, int gridx, int gridy)
 void map::copy_grid(int to, int from)
 {
  grid[to] = grid[from];
- for (int i = 0; i < grid[to]->vehicles.size(); i++) {
-  int ind = grid[to]->vehicles.size() - 1;
-  grid[to]->vehicles[ind].smx = to % my_MAPSIZE;
-  grid[to]->vehicles[ind].smy = to / my_MAPSIZE;
+ for( std::vector<vehicle*>::iterator it = grid[to]->vehicles.begin(),
+       end = grid[to]->vehicles.end(); it != end; ++it ) {
+  (*it)->smx = to % my_MAPSIZE;
+  (*it)->smy = to / my_MAPSIZE;
  }
 }
 

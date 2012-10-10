@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <vector>
 #include <string>
+#include <set>
+#include <map>
 
 #include "mapdata.h"
 #include "mapitems.h"
@@ -69,6 +71,8 @@ class map
  // put player on vehicle at x,y
  void board_vehicle(game *g, int x, int y, player *p);
  void unboard_vehicle(game *g, int x, int y);//remove player from vehicle at x,y
+ void update_vehicle_cache(vehicle *, bool brand_new = false);
+ void reset_vehicle_cache();
 
  void destroy_vehicle (vehicle *veh);
 // Change vehicle coords and move vehicle's driver along.
@@ -155,6 +159,8 @@ class map
  computer* add_computer(int x, int y, std::string name, int security);
  
  std::vector <itype*> *itypes;
+ std::set<vehicle*> vehicle_list;
+ std::map< std::pair<int,int>, std::pair<vehicle*,int> > veh_cached_parts;
 
 protected:
  void saven(overmap *om, unsigned int turn, int x, int y, int gridx, int gridy);
@@ -180,6 +186,8 @@ protected:
 
  std::vector <trap*> *traps;
  std::vector <itype_id> (*mapitems)[num_itloc];
+
+ bool veh_in_active_range;
 
 private:
  submap* grid[MAPSIZE * MAPSIZE];

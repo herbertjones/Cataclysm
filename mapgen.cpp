@@ -98,7 +98,7 @@ void map::generate(game *g, overmap *om, int x, int y, int turn)
  unsigned zones = 0;
  int overx = x / 2;
  int overy = y / 2;
- if (x >= OMAPX * 2 || x < 0 || y >= OMAPY * 2 || y < 0) {
+ if ( 0 && x >= OMAPX * 2 || x < 0 || y >= OMAPY * 2 || y < 0) {
 // This happens when we're at the very edge of the overmap, and are generating
 // terrain for the adjacent overmap.
   int sx = 0, sy = 0;
@@ -171,6 +171,7 @@ void map::generate(game *g, overmap *om, int x, int y, int turn)
    overmap tmp(g, om->posx - 1, om->posy, 0);
    t_west = tmp.ter(OMAPX - 1, overy);
   }
+ }
  draw_map(terrain_type, t_north, t_east, t_south, t_west, t_above, turn, g);
 
  if ( one_in( oterlist[terrain_type].embellishments.chance ))
@@ -178,7 +179,6 @@ void map::generate(game *g, overmap *om, int x, int y, int turn)
 
  post_process(g, zones);
 
- }
 
 // Okay, we know who are neighbors are.  Let's draw!
 // And finally save used submaps and delete the rest.
@@ -6584,6 +6584,7 @@ vehicle *map::add_vehicle(game *g, vhtype_id type, int x, int y, int dir)
   debugmsg("Bad add_vehicle t=%d d=%d x=%d y=%d", type, dir, x, y);
   return 0;
  }
+
 // debugmsg("add_vehicle t=%d d=%d x=%d y=%d", type, dir, x, y);
  int smx = x / SEEX;
  int smy = y / SEEY;
@@ -6591,17 +6592,21 @@ vehicle *map::add_vehicle(game *g, vhtype_id type, int x, int y, int dir)
  x %= SEEX;
  y %= SEEY;
 // debugmsg("n=%d x=%d y=%d MAPSIZE=%d ^2=%d", nonant, x, y, MAPSIZE, MAPSIZE*MAPSIZE);
- vehicle veh(g, type);
- veh.posx = x;
- veh.posy = y;
- veh.smx = smx;
- veh.smy = smy;
- veh.face.init(dir);
- veh.turn_dir = dir;
- veh.precalc_mounts (0, dir);
+ vehicle * veh = new vehicle(g, type);
+ veh->posx = x;
+ veh->posy = y;
+ veh->smx = smx;
+ veh->smy = smy;
+ veh->face.init(dir);
+ veh->turn_dir = dir;
+ veh->precalc_mounts (0, dir);
+
  grid[nonant]->vehicles.push_back(veh);
- //debugmsg ("grid[%d]->vehicles.size=%d veh.parts.size=%d", nonant, grid[nonant]->vehicles.size(),veh.parts.size());
- return &grid[nonant]->vehicles[grid[nonant]->vehicles.size()-1];
+
+ vehicle_list.insert(veh);
+ update_vehicle_cache(veh,true);
+
+ return veh;
 }
 
 computer* map::add_computer(int x, int y, std::string name, int security)
@@ -6631,7 +6636,7 @@ void map::rotate(int turns)
  std::vector<item> itrot[SEEX*2][SEEY*2];
  std::vector<spawn_point> sprot[my_MAPSIZE * my_MAPSIZE];
  computer tmpcomp;
- std::vector<vehicle> tmpveh;
+ std::vector<vehicle*> tmpveh;
 
  switch (turns) {
  case 1:
@@ -6753,7 +6758,7 @@ void map::rotate(int turns)
  for (int i = 0; i < my_MAPSIZE * my_MAPSIZE; i++)
      for (int v = 0; v < grid[i]->vehicles.size(); v++)
          if (turns >= 1 && turns <= 3)
-            grid[i]->vehicles[v].turn (turns * 90);
+            grid[i]->vehicles[v]->turn (turns * 90);
 
 // Set the spawn points
  grid[0]->spawns = sprot[0];
